@@ -13,3 +13,7 @@ siculy-scout-*.csv
 # Fotos reales de tarjetas para pruebas locales (datos personales)
 local-photos/
 ocr-private/
+
+# Experimentos locales (audio de prueba, resultados)
+experiments/audio/
+public/ort

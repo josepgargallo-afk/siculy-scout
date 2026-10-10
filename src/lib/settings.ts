@@ -8,6 +8,11 @@ export interface Settings {
   /** Reconocimiento de voz del navegador: en Chrome ENVÍA el audio a Google. Desactivado por defecto. */
   dictationEnabled: boolean;
   ocrLangs: string[];
+  /** Transcripción local de audios (Whisper). EXPERIMENTAL: desactivada hasta validarla en el móvil. */
+  transcriptionEnabled: boolean;
+  whisperModel: 'tiny' | 'base';
+  whisperInstalled: 'tiny' | 'base' | null;
+  transcriptionLang: string;
   event: { originType: OriginType; eventName: string; city: string; country: string };
 }
 
@@ -16,6 +21,10 @@ export const DEFAULT_SETTINGS: Settings = {
   qrEnabled: true,
   dictationEnabled: false,
   ocrLangs: ['eng', 'spa', 'ita', 'fra'],
+  transcriptionEnabled: false,
+  whisperModel: 'base',
+  whisperInstalled: null,
+  transcriptionLang: 'es',
   event: { ...DEFAULT_EVENT, eventName: DEFAULT_EVENT.eventName } as Settings['event'],
 };
 

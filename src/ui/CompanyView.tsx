@@ -10,12 +10,12 @@ import { AudioSection, ContactsSection, NotesSection, PhotosSection, VisitsSecti
 
 interface FormState {
   name: string; legalName: string; type: CompanyType; priority: Priority; country: string; city: string;
-  address: string; web: string; categories: string; products: string; notes: string;
+  address: string; operationalAddress: string; email: string; phone: string; web: string; categories: string; products: string; notes: string;
 }
 
 const toForm = (c: Company): FormState => ({
   name: c.name, legalName: c.legalName ?? '', type: c.type, priority: c.priority, country: c.country ?? '', city: c.city ?? '',
-  address: c.address ?? '', web: c.web ?? '', categories: c.categories.join(', '), products: c.productsOfInterest.join(', '), notes: c.notes ?? '',
+  address: c.address ?? '', operationalAddress: c.operationalAddress ?? '', email: c.email ?? '', phone: c.phone ?? '', web: c.web ?? '', categories: c.categories.join(', '), products: c.productsOfInterest.join(', '), notes: c.notes ?? '',
 });
 
 type SaveState = 'saved' | 'pending' | 'error';
@@ -39,7 +39,8 @@ function CompanyForm({ company }: { company: Company }) {
     try {
       await updateCompany(id, {
         name: v.name, legalName: v.legalName.trim() || undefined, type: v.type, priority: v.priority,
-        country: v.country.trim() || undefined, city: v.city.trim() || undefined, address: v.address.trim() || undefined,
+        country: v.country.trim() || undefined, city: v.city.trim() || undefined, address: v.address.trim() || undefined, operationalAddress: v.operationalAddress.trim() || undefined,
+        email: v.email.trim() || undefined, phone: v.phone.trim() || undefined,
         web: v.web.trim() || undefined, categories: splitList(v.categories), productsOfInterest: splitList(v.products),
         notes: v.notes.trim() || undefined,
       });
@@ -82,7 +83,12 @@ function CompanyForm({ company }: { company: Company }) {
         <Field label="Ciudad"><input type="text" value={f.city} onChange={(e) => set({ city: e.target.value })} /></Field>
       </div>
       <Field label="Nombre legal"><input type="text" value={f.legalName} onChange={(e) => set({ legalName: e.target.value })} /></Field>
-      <Field label="Dirección"><input type="text" value={f.address} onChange={(e) => set({ address: e.target.value })} /></Field>
+      <Field label="Dirección legal"><input type="text" value={f.address} onChange={(e) => set({ address: e.target.value })} /></Field>
+      <Field label="Dirección operativa"><input type="text" value={f.operationalAddress} onChange={(e) => set({ operationalAddress: e.target.value })} /></Field>
+      <div className="grid2">
+        <Field label="Email corporativo"><input type="email" inputMode="email" autoCapitalize="none" value={f.email} onChange={(e) => set({ email: e.target.value })} /></Field>
+        <Field label="Teléfono corporativo"><input type="tel" value={f.phone} onChange={(e) => set({ phone: e.target.value })} /></Field>
+      </div>
       <Field label="Web">
         <div className="row nowrap"><input type="url" inputMode="url" value={f.web} onChange={(e) => set({ web: e.target.value })} placeholder="www.ejemplo.com" />
           {f.web.trim() && <a className="btn" href={/^https?:\/\//i.test(f.web.trim()) ? f.web.trim() : 'https://' + f.web.trim()} target="_blank" rel="noopener noreferrer">Abrir</a>}</div>

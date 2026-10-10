@@ -14,4 +14,7 @@ for (const l of ['eng', 'spa', 'ita', 'fra']) {
   if (!existsSync(src)) throw new Error('Falta ' + src);
   cpSync(src, join(out, `${l}.traineddata.gz`));
 }
-console.log('OCR resources copied to', out);
+// Runtime WASM de ONNX (transcripción local): se sirve desde la propia app, nunca desde un CDN.
+mkdirSync('public/ort', { recursive: true });
+for (const f of ['ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.wasm']) cpSync(join('node_modules/onnxruntime-web/dist', f), join('public/ort', f));
+console.log('OCR + ORT resources copied');

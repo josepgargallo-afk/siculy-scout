@@ -18,6 +18,16 @@ export default defineConfig({
         scope: './',
         display: 'standalone',
         orientation: 'portrait',
+        // Android: «Compartir → Siculy Scout» desde el visor de archivos o el navegador (vCard o enlace).
+        share_target: {
+          action: './share-target',
+          method: 'POST',
+          enctype: 'multipart/form-data',
+          params: {
+            title: 'title', text: 'text', url: 'url',
+            files: [{ name: 'file', accept: ['text/vcard', 'text/x-vcard', 'text/directory', '.vcf', 'text/plain'] }],
+          },
+        },
         background_color: '#0f2a3d',
         theme_color: '#0f2a3d',
         icons: [
@@ -30,10 +40,16 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,png,svg,webmanifest}'],
         // Los recursos OCR (pesados) NO se precachean: se descargan bajo demanda
         // desde Ajustes ("Preparar OCR sin conexión") y se guardan en la caché 'scout-ocr'.
-        globIgnores: ['ocr/**'],
+        globIgnores: ['ocr/**', 'ort/**'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: 'index.html',
+        importScripts: ['share-target-sw.js'],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.includes('/ort/'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'scout-ort' },
+          },
           {
             urlPattern: ({ url }) => url.pathname.includes('/ocr/'),
             handler: 'CacheFirst',
@@ -43,6 +59,8 @@ export default defineConfig({
       },
     }),
   ],
+  worker: { format: 'es' },
+  optimizeDeps: { exclude: ['@huggingface/transformers'] },
   build: { target: 'es2022', chunkSizeWarningLimit: 900 },
   test: { environment: 'node', include: ['src/__tests__/**/*.test.ts'] },
 });

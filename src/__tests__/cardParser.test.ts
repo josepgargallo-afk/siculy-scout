@@ -181,3 +181,67 @@ describe('parser: compatibilidad con texto plano', () => {
     expect(parseCardText('')).toMatchObject({ emails: [], extras: [], uncertain: [] });
   });
 });
+
+describe('parser: datos de la EMPRESA (para rellenar la ficha)', () => {
+  const card = L(
+    'DOLCE TRINACRIA S.r.l.', 'Rosalia Vitale', 'Co Founder', 'Dipartimento Export',
+    'M. +39 338 4417 092', 'T. +39 091 6140 552',
+    'rosalia.vitale@dolcetrinacria.it', 'info@dolcetrinacria.it', 'rosalia.vitale76@gmail.com', 'www.dolcetrinacria.it',
+    'Sede legale', 'Via Libertà 114', '90143 Palermo (PA)',
+    'Sede operativa', 'Zona Industriale, Lotto 7', '90044 Carini (PA)',
+    'P.IVA 06123450821',
+  );
+  const f = parseCard(card);
+
+  it('nombre comercial (sin forma jurídica) y nombre legal (con ella)', () => {
+    expect(f.org.commercialName).toBe('DOLCE TRINACRIA');
+    expect(f.org.legalName).toBe('DOLCE TRINACRIA S.r.l.');
+  });
+  it('dirección legal y operativa según las etiquetas de la tarjeta', () => {
+    expect(f.org.legalAddress).toBe('Via Libertà 114, 90143 Palermo (PA)');
+    expect(f.org.operationalAddress).toBe('Zona Industriale, Lotto 7, 90044 Carini (PA)');
+    expect(f.org.city).toBe('Palermo');
+  });
+  it('país deducido del prefijo telefónico se marca como deducido (revisar), nunca como seguro', () => {
+    expect(f.org.country).toBe('Italia');
+    expect(f.org.inferred).toContain('country');
+  });
+  it('país explícito en la tarjeta no se marca como deducido', () => {
+    const g = parseCard(L('Mare Srl', 'Via Po 3', '10100 Torino (TO)', 'Italy'));
+    expect(g.org.country).toBe('Italia');
+    expect(g.org.inferred).not.toContain('country');
+  });
+  it('buzón genérico (info@) → empresa; email nominal → persona; personal → conservado', () => {
+    expect(f.org.email).toBe('info@dolcetrinacria.it');
+    expect(f.email).toBe('rosalia.vitale@dolcetrinacria.it');
+    expect(f.extras.some((e) => /personal: rosalia.vitale76@gmail.com/.test(e))).toBe(true);
+  });
+  it('teléfono fijo → empresa (y persona); móvil → sólo persona', () => {
+    expect(f.org.phone).toBe('+39 091 6140 552');
+    expect(f.mobile).toBe('+39 338 4417 092');
+    expect(f.org.phone).not.toBe(f.mobile);
+  });
+  it('departamento sólo con palabra clave explícita; un cargo con «ufficio» sigue siendo cargo', () => {
+    expect(f.department).toBe('Export');
+    const g = parseCard(L('Mario Rossi', 'Responsabile Ufficio Acquisti', 'mario.rossi@x-foods.it'));
+    expect(g.department).toBeUndefined();
+    expect(g.role).toBe('Responsabile Ufficio Acquisti');
+  });
+  it('si sólo hay un buzón genérico, no se asigna como email de la persona', () => {
+    const g = parseCard(L('Mare Surgelati S.r.l.', 'Luca Neri', 'Titolare', 'info@maresurgelati.it', 'www.maresurgelati.it'));
+    expect(g.email).toBeUndefined();
+    expect(g.org.email).toBe('info@maresurgelati.it');
+  });
+  it('dirección con etiqueta en la misma línea', () => {
+    const g = parseCard(L('Alfa Srl', 'Sede legale: Via Roma 1, 00100 Roma (RM)', 'Magazzino: Via Appia 20, 04100 Latina (LT)'));
+    expect(g.org.legalAddress).toContain('Via Roma 1');
+    expect(g.org.operationalAddress).toContain('Via Appia 20');
+  });
+  it('sin evidencia no inventa: sin ciudad, país ni forma jurídica queda vacío', () => {
+    const g = parseCard(L('Luca Neri', 'luca@gmail.com'));
+    expect(g.org.country).toBeUndefined();
+    expect(g.org.city).toBeUndefined();
+    expect(g.org.legalName).toBeUndefined();
+    expect(g.org.commercialName).toBeUndefined();
+  });
+});

@@ -1,7 +1,9 @@
 // Modelo de datos de Siculy Scout. Los ids son UUID permanentes (no se reutilizan ni cambian)
 // para poder migrar a un CRM futuro sin ambigüedad. Las fechas son ISO-8601 UTC.
 
-export const SCHEMA_VERSION = 1;
+// v2: datos corporativos de empresa (email, teléfono, dirección operativa), transcripciones de audio y notas vinculadas.
+// Todos los campos nuevos son opcionales: los datos y copias v1 siguen siendo válidos sin conversión.
+export const SCHEMA_VERSION = 2;
 
 export type CompanyType = 'supplier' | 'prospect' | 'both';
 export type Priority = 'high' | 'medium' | 'low';
@@ -17,8 +19,11 @@ export interface Company {
   type: CompanyType;
   country?: string;
   city?: string;
-  address?: string;
+  address?: string; // dirección legal / sede
+  operationalAddress?: string; // dirección operativa (almacén, planta…)
   web?: string;
+  email?: string; // email corporativo genérico (info@, ventas@…)
+  phone?: string; // teléfono corporativo
   categories: string[];
   productsOfInterest: string[];
   notes?: string; // notas comerciales generales
@@ -60,6 +65,21 @@ export interface Contact {
   updatedAt: string;
 }
 
+export type TranscriptStatus = 'pending' | 'processing' | 'done' | 'error';
+
+/** Transcripción literal de un audio. `text` es lo que dijo el motor; la nota vinculada es la copia editable. */
+export interface Transcript {
+  status: TranscriptStatus;
+  text?: string;
+  language?: string; // idioma pedido al motor ('es', 'it'… o 'auto')
+  detected?: string;
+  model?: string;
+  noteId?: string; // nota creada a partir de esta transcripción (no se duplica al reintentar)
+  error?: string;
+  attempts?: number;
+  updatedAt: string;
+}
+
 export interface MediaItem {
   id: string;
   companyId: string;
@@ -72,6 +92,7 @@ export interface MediaItem {
   blob: Blob;
   thumb?: Blob; // sólo fotos
   durationMs?: number; // sólo audio
+  transcript?: Transcript; // sólo audio
   createdAt: string;
   updatedAt: string;
 }
@@ -80,6 +101,8 @@ export interface NoteItem {
   id: string;
   companyId: string;
   text: string;
+  kind?: 'text' | 'transcript';
+  sourceMediaId?: string; // audio del que procede la transcripción
   createdAt: string;
   updatedAt: string;
 }

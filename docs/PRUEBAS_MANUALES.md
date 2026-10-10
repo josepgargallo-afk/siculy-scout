@@ -75,3 +75,35 @@ Usa la tarjeta real que falló y 3-4 más. Anota para cada una lo que ves.
 
 ## Resultado
 Fecha: ____  Versión (Ajustes): ____  Incidencias: ______________________________
+
+---
+## 9. Novedades v0.2.0 (críticas antes de la feria)
+
+### 9.1 Rellenado automático de empresa desde la tarjeta
+- [ ] Escanear la tarjeta real → «Datos de la empresa detectados» muestra nombre comercial/legal, país (⚠ revisar si lo dedujo del prefijo), ciudad, direcciones legal/operativa, web, email y teléfono corporativos. Contacto con cargo, emails y teléfonos.
+- [ ] Guardar como **empresa nueva** → la ficha trae esos datos (revísalos en «Datos de la empresa»).
+- [ ] Escanear otra tarjeta de una empresa **ya existente** → elegir «Empresa existente»: aparecen «Nuevo» / «Conflicto»; por defecto no se pisa nada. Elegir «Usar detectado» en un conflicto y comprobar que sólo cambia ese campo.
+- [ ] Una tarjeta cuya empresa no coincide con la ficha elegida muestra el aviso ⚠ y pide confirmación.
+- [ ] Categorías y productos NO se rellenan nunca solos.
+
+### 9.2 Tarjetas digitales y vCard (.vcf)
+- [ ] QR de **Avacard**: se ofrece abrir el enlace, «Importar archivo .vcf» y «Crear contacto sólo con este enlace». Abrir el enlace, pulsar en la página el botón de guardar/descargar contacto (.vcf) → **¿lo ofrece Avacard?** Anotar: ______
+- [ ] «Importar archivo .vcf» → selector de Android → carpeta Descargas → elegir el .vcf → pantalla editable con persona, cargo, empresa, emails, teléfonos, web, dirección.
+- [ ] **Compartir → Siculy Scout** desde el visor de archivos / Descargas con el .vcf (si «Siculy Scout» no aparece, desinstalar y reinstalar la app: el menú Compartir se registra al instalar).
+- [ ] .vcf exportado desde la agenda de Android con varios contactos: lista para elegir e importar uno a uno.
+- [ ] QR de vCard directo (sin internet, modo avión).
+- [ ] Contacto con la empresa elegida distinta a la del vCard → aviso.
+
+### 9.3 Transcripción de audio (EXPERIMENTAL, desactivada por defecto)
+- [ ] Ajustes → Transcripción de audio: descargar modelo «Base» con Wi-Fi (76 MB). Tiempo: ______
+- [ ] Probar un audio de 15 s en **español** y otro en **italiano**: tiempo ______ / ______; ¿correcto? ______
+- [ ] Mientras transcribe, ¿la app sigue usable? ¿se calienta/ralentiza el móvil? ______
+- [ ] **Modo avión**: grabar y transcribir (el modelo debe estar ya descargado).
+- [ ] Cerrar la app a mitad de una transcripción y reabrir: debe retomarla sin duplicar notas.
+- [ ] Editar la nota y pulsar «Transcribir de nuevo»: la nota editada no se pisa.
+- [ ] Si falla o es demasiado lenta: desmarcar «Transcribir automáticamente»; el audio y las notas manuales siguen igual.
+
+### 9.4 Migración y copias
+- [ ] Abrir la app nueva sobre tus datos reales: empresas, contactos, fotos y audios siguen ahí. **Haz una copia ZIP ANTES de actualizar.**
+- [ ] Copia ZIP nueva → restaurar en el ordenador (Reemplazar) → todo presente.
+- [ ] Restaurar en la versión nueva una copia ZIP antigua (si la conservas) → se restaura sin errores.

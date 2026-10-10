@@ -22,12 +22,12 @@ export function companiesCsv(companies: Company[], touchpoints: Touchpoint[]): s
   [...touchpoints].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).forEach((t) => { if (!first.has(t.companyId)) first.set(t.companyId, t); });
   return toCsv(
     ['id', 'nombre_comercial', 'nombre_legal', 'tipo', 'pais', 'ciudad', 'direccion', 'web', 'categorias', 'productos_interes',
-      'notas', 'prioridad', 'origen_tipo', 'evento', 'fecha_origen', 'stand', 'creado', 'modificado'],
+      'notas', 'prioridad', 'origen_tipo', 'evento', 'fecha_origen', 'stand', 'creado', 'modificado', 'email_corporativo', 'telefono_corporativo', 'direccion_operativa'],
     companies.map((c) => {
       const t = first.get(c.id);
       return [c.id, c.name, c.legalName, TYPE_LABEL[c.type], c.country, c.city, c.address, c.web,
         c.categories.join(', '), c.productsOfInterest.join(', '), c.notes, PRIORITY_LABEL[c.priority],
-        t ? ORIGIN_LABEL[t.originType] : '', t?.eventName, t?.date, t?.stand, c.createdAt, c.updatedAt];
+        t ? ORIGIN_LABEL[t.originType] : '', t?.eventName, t?.date, t?.stand, c.createdAt, c.updatedAt, c.email, c.phone, c.operationalAddress];
     }),
   );
 }

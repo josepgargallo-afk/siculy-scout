@@ -13,6 +13,10 @@ import {
 import { Field, Modal, fmtDate, useUi } from './kit';
 import { navigate } from './router';
 import { useDraft, useLive, useObjectUrl, useSettings } from './hooks';
+import { getSettings } from '../lib/settings';
+import { WHISPER_LANGS } from '../lib/audioPrep';
+import { enqueueTranscription } from '../lib/transcribe';
+import { kickTranscription } from '../lib/whisperClient';
 
 type Ui = ReturnType<typeof useUi>;
 
@@ -163,8 +167,11 @@ export function AudioSection({ companyId, startSignal }: { companyId: string; st
     if (!r) return;
     try {
       const out = await r.stop();
-      await addMedia({ companyId, kind: 'audio', mime: out.mime, size: out.blob.size, blob: out.blob, durationMs: out.durationMs });
+      const saved = await addMedia({ companyId, kind: 'audio', mime: out.mime, size: out.blob.size, blob: out.blob, durationMs: out.durationMs });
       ui.toast('Audio guardado');
+      // Grabar → Guardar audio → Transcribir → Guardar nota (sólo si la función experimental está activa y el modelo instalado)
+      const st = getSettings();
+      if (st.transcriptionEnabled && st.whisperInstalled) { await enqueueTranscription(saved.id, st.transcriptionLang); void kickTranscription(); }
     } catch (e) { ui.toast(describeSaveError(e), 'err'); }
   };
   useEffect(() => { if (startSignal > 0) void start(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [startSignal]);
@@ -189,15 +196,41 @@ export function AudioSection({ companyId, startSignal }: { companyId: string; st
 
 function AudioRow({ m }: { m: MediaItem }) {
   const ui = useUi();
+  const set = useSettings();
   const url = useObjectUrl(m.blob);
   const [desc, setDesc] = useState(m.description ?? '');
+  const [lang, setLang] = useState(m.transcript?.language ?? set.transcriptionLang);
   const secs = Math.round((m.durationMs ?? 0) / 1000);
+  const t = m.transcript;
+  const installed = !!set.whisperInstalled;
+  const run = async () => {
+    if (!installed) { ui.toast('Primero descarga el modelo en Ajustes → Transcripción de audio', 'err'); return; }
+    await enqueueTranscription(m.id, lang);
+    void kickTranscription({ force: true });
+  };
   return (
     <div className="audio-item">
       <div className="row nowrap"><span className="small grow">{fmtDate(m.createdAt)} · {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, '0')} · {formatBytes(m.size)}</span>
-        <button className="btn sm" onClick={async () => { if (await ui.confirm({ title: '¿Eliminar audio?', confirmLabel: 'Eliminar', danger: true }) === true) await deleteMedia(m.id); }}>🗑</button></div>
+        <button className="btn sm" onClick={async () => { if (await ui.confirm({ title: '¿Eliminar audio?', message: t?.noteId ? 'La nota de la transcripción NO se elimina.' : undefined, confirmLabel: 'Eliminar', danger: true }) === true) await deleteMedia(m.id); }}>🗑</button></div>
       {url && <audio controls preload="none" src={url} />}
-      <input type="text" value={desc} placeholder="Transcripción o resumen (opcional)" onChange={(e) => setDesc(e.target.value)} onBlur={() => void updateMedia(m.id, { description: desc.trim() || undefined })} />
+      {t && (
+        <div className={'tstatus ' + t.status}>
+          {t.status === 'pending' && <span>⏳ En cola para transcribir{!installed ? ' (descarga el modelo en Ajustes)' : !set.transcriptionEnabled ? ' (la transcripción automática está desactivada)' : ''} {installed && !set.transcriptionEnabled && <button className="btn sm" onClick={() => void kickTranscription({ force: true })}>▶ Transcribir ahora</button>}</span>}
+          {t.status === 'processing' && <span><span className="spinner" style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 6 }} />Transcribiendo… (puede tardar; el audio ya está guardado)</span>}
+          {t.status === 'done' && <span>📝 Transcrito{t.language ? ' (' + (WHISPER_LANGS[t.language] ?? t.language) + ')' : ''}: <i>{(t.text ?? '').slice(0, 140)}{(t.text ?? '').length > 140 ? '…' : ''}</i> <small>(editable en Notas)</small></span>}
+          {t.status === 'error' && <span>⚠ {t.error ?? 'Error'} — el audio se conserva.</span>}
+          {t.status === 'done' && t.error && <div className="small">{t.error}</div>}
+        </div>
+      )}
+      {(installed || t) && (!t || t.status === 'done' || t.status === 'error') && (
+        <div className="row">
+          <select value={lang} onChange={(e) => setLang(e.target.value)} aria-label="Idioma del audio" style={{ width: 'auto', minHeight: 36 }}>
+            {Object.entries(WHISPER_LANGS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <button className="btn sm" onClick={() => void run()}>{t?.status === 'done' ? '↻ Transcribir de nuevo' : t?.status === 'error' ? '↻ Reintentar' : '📝 Transcribir'}</button>
+        </div>
+      )}
+      <input type="text" value={desc} placeholder="Resumen o descripción (opcional)" onChange={(e) => setDesc(e.target.value)} onBlur={() => void updateMedia(m.id, { description: desc.trim() || undefined })} />
     </div>
   );
 }
@@ -241,7 +274,7 @@ export function NotesSection({ companyId }: { companyId: string }) {
             </div>
           ) : (
             <>
-              <div className="small">{fmtDate(n.createdAt)}</div>
+              <div className="small">{fmtDate(n.createdAt)}{n.kind === 'transcript' && <span className="chip" style={{ marginLeft: 6 }}>🎙 Transcripción de audio</span>}</div>
               <div>{n.text}</div>
               <div className="row" style={{ marginTop: 4 }}>
                 <button className="btn sm" onClick={() => { setEditing(n.id); setEditText(n.text); }}>Editar</button>

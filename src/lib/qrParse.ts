@@ -17,6 +17,11 @@ export interface QrContact {
   address?: string;
   notes?: string;
   extras: string[];
+  /** Detalle con el TIPO declarado en la tarjeta (WORK/HOME/CELL…): permite separar datos de empresa y personales. */
+  emails?: { value: string; type: string }[];
+  phones?: { value: string; type: string }[];
+  urls?: { value: string; type: string }[];
+  addresses?: { text: string; type: string; street?: string; city?: string; region?: string; postal?: string; country?: string }[];
 }
 
 export interface QrResult {
@@ -59,6 +64,14 @@ function splitSemi(s: string): string[] {
   return parts;
 }
 
+const typeOf = (params: string): string => (/HOME|PERSONAL/.test(params) ? 'home' : /CELL|MOBILE/.test(params) ? 'cell' : /FAX/.test(params) ? 'fax' : /WORK|OFFICE/.test(params) ? 'work' : 'other');
+
+/** Un archivo .vcf puede traer varios contactos (exportación de la agenda, tarjeta de equipo…). */
+export function parseVCards(text: string): QrContact[] {
+  const blocks = text.replace(/\r\n/g, '\n').split(/(?=^BEGIN:VCARD)/im).filter((b) => /^BEGIN:VCARD/i.test(b.trim()));
+  return blocks.map((b) => parseVCard(b)).filter((c) => c.fullName || c.email || c.phone || c.mobile || c.company);
+}
+
 export function parseVCard(text: string): QrContact {
   const c: QrContact = { extras: [] };
   const lines = unfold(text).split(/\r?\n/);
@@ -83,8 +96,9 @@ export function parseVCard(text: string): QrContact {
       }
       case 'ORG': c.company = splitSemi(value).map(unescapeV).filter(Boolean)[0]; c.department = splitSemi(value).map(unescapeV).filter(Boolean)[1]; break;
       case 'TITLE': c.role = v; break;
-      case 'EMAIL': if (!c.email) c.email = v; else c.extras.push(`Email: ${v}`); break;
+      case 'EMAIL': (c.emails ??= []).push({ value: v, type: typeOf(paramStr) }); if (!c.email) c.email = v; else c.extras.push(`Email: ${v}`); break;
       case 'TEL': {
+        (c.phones ??= []).push({ value: v, type: typeOf(paramStr) });
         const mob = /CELL|MOBILE/.test(paramStr);
         const fax = /FAX/.test(paramStr);
         if (fax) c.extras.push(`Fax: ${v}`);
@@ -93,8 +107,14 @@ export function parseVCard(text: string): QrContact {
         else c.extras.push(`Tel: ${v}`);
         break;
       }
-      case 'URL': if (!c.web) c.web = v; else c.extras.push(`Web: ${v}`); break;
-      case 'ADR': c.address = splitSemi(value).map(unescapeV).filter(Boolean).join(', '); break;
+      case 'URL': (c.urls ??= []).push({ value: v, type: typeOf(paramStr) }); if (!c.web) c.web = v; else c.extras.push(`Web: ${v}`); break;
+      case 'ADR': {
+        const f = splitSemi(value).map(unescapeV); // pobox;ext;calle;ciudad;región;CP;país
+        const text = f.filter(Boolean).join(', ');
+        (c.addresses ??= []).push({ text, type: typeOf(paramStr), street: f[2] || undefined, city: f[3] || undefined, region: f[4] || undefined, postal: f[5] || undefined, country: f[6] || undefined });
+        if (!c.address) c.address = text;
+        break;
+      }
       case 'NOTE': c.notes = v; break;
       default: break;
     }

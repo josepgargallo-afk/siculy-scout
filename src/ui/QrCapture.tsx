@@ -1,20 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { decodeQrFromBlob, decodeQrFromImageData } from '../lib/qrDecode';
-import type { QrContact, QrResult } from '../lib/qrParse';
+import type { QrResult } from '../lib/qrParse';
+import { draftFromVcard, DIGITAL_CARD_HOSTS, type ImportDraft } from '../lib/importDraft';
 import { describeMediaError } from '../lib/recorder';
 import { CaptureConfirm, SaveLinkPanel } from './capture';
-import { emptyContact, type ContactFields } from './ContactForm';
 import { Header, Spinner, useUi } from './kit';
+import { navigate } from './router';
 import { useSettings } from './hooks';
-
-function fieldsFromQr(c: QrContact): ContactFields {
-  return {
-    ...emptyContact,
-    fullName: c.fullName ?? '', role: c.role ?? '', department: c.department ?? '', email: c.email ?? '', phone: c.phone ?? '',
-    mobile: c.mobile ?? '', webOrLinkedin: c.web ?? '',
-    notes: [c.company && `Empresa: ${c.company}`, c.address && `Dirección: ${c.address}`, c.notes, ...c.extras].filter(Boolean).join('\n'),
-  };
-}
 
 const hostOf = (u: string) => { try { return new URL(u).hostname; } catch { return u; } };
 
@@ -70,13 +62,15 @@ export function QrCapture({ companyId }: { companyId?: string }) {
     return () => { alive = false; cancelAnimationFrame(raf); document.removeEventListener('visibilitychange', onHide); stopCam(); };
   }, [set.qrEnabled, result, camOn, stopCam]);
 
-  const initial = useMemo(() => {
-    if (!result) return emptyContact;
-    if (result.contact) return fieldsFromQr(result.contact);
-    if (result.kind === 'email') return { ...emptyContact, email: result.email ?? '' };
-    if (result.kind === 'phone') return { ...emptyContact, phone: result.phone ?? '' };
-    return emptyContact;
+  const draft: ImportDraft | null = useMemo(() => {
+    if (!result) return null;
+    if (result.contact) return draftFromVcard(result.contact);
+    if (result.kind === 'email') return draftFromVcard({ extras: [], email: result.email, emails: [{ value: result.email ?? '', type: 'work' }] });
+    if (result.kind === 'phone') return draftFromVcard({ extras: [], phone: result.phone, phones: [{ value: result.phone ?? '', type: 'work' }] });
+    return null;
   }, [result]);
+  const [asContact, setAsContact] = useState(false);
+  const linkDraft = useMemo(() => (result?.url ? draftFromVcard({ extras: [] }, result.url) : null), [result]);
 
   if (!set.qrEnabled) return <><Header title="Escanear QR" back /><div className="page"><div className="banner info">El escáner QR está desactivado en Ajustes.</div></div></>;
 
@@ -100,8 +94,6 @@ export function QrCapture({ companyId }: { companyId?: string }) {
     if (ok === true) window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const company = result?.contact?.company;
-
   return (
     <>
       <Header title="Escanear QR" back />
@@ -116,6 +108,7 @@ export function QrCapture({ companyId }: { companyId?: string }) {
             <div className="small">Apunta al código QR. Funciona sin conexión si el QR contiene los datos directamente (vCard/MECARD).</div>
             <button className="btn block" onClick={() => fileRef.current?.click()}>🖼 Leer QR desde una imagen</button>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={fromImage} />
+            <button className="btn block" onClick={() => navigate('/import' + (companyId ? '?c=' + companyId : ''))}>📥 Importar archivo .vcf (tarjeta digital)</button>
           </>
         )}
         {result && (
@@ -125,15 +118,30 @@ export function QrCapture({ companyId }: { companyId?: string }) {
               <button className="btn sm" style={{ marginLeft: 8 }} onClick={restart}>Escanear otro</button>
             </div>
             {(result.kind === 'vcard' || result.kind === 'mecard' || result.kind === 'email' || result.kind === 'phone') && (
-              <CaptureConfirm key={result.raw} source="qr" initial={initial} presetCompanyId={companyId} suggestCompany={company} />
+              draft && <CaptureConfirm key={result.raw} source="qr" draft={draft} presetCompanyId={companyId} />
             )}
-            {result.kind === 'url' && result.url && (
+            {result.kind === 'url' && result.url && !asContact && (
               <div className="stack">
-                <div className="card"><div className="small">Enlace (no se abre automáticamente):</div><div style={{ wordBreak: 'break-all' }}><b>{result.url}</b></div>
-                  <div className="small">Es sólo un enlace: la app no descarga ni lee su contenido.</div>
-                  <button className="btn" style={{ marginTop: 8 }} onClick={() => void openLink(result.url!)}>Abrir en el navegador…</button></div>
+                <div className="card">
+                  <div className="small">{DIGITAL_CARD_HOSTS.test(result.url) ? 'Parece una tarjeta digital' : 'Enlace'} (no se abre automáticamente):</div>
+                  <div style={{ wordBreak: 'break-all' }}><b>{result.url}</b></div>
+                  <button className="btn" style={{ marginTop: 8 }} onClick={() => void openLink(result.url!)}>Abrir en el navegador…</button>
+                </div>
+                <div className="card stack">
+                  <h2>Importar los datos del contacto</h2>
+                  <div className="small">
+                    La app <b>no puede leer</b> el contenido de páginas ajenas (el navegador lo bloquea por seguridad y privacidad) ni hace scraping.
+                    Lo habitual es que la página tenga un botón <i>«Guardar contacto»</i>, <i>«Añadir a contactos»</i> o <i>«Descargar vCard»</i>:
+                    púlsalo para bajar el archivo <b>.vcf</b> y luego impórtalo aquí. Desde Android también puedes <i>Compartir → Siculy Scout</i>.
+                  </div>
+                  <button className="btn primary" onClick={() => navigate('/import' + (companyId ? '?c=' + companyId : ''))}>📥 Importar archivo .vcf</button>
+                  <button className="btn" onClick={() => setAsContact(true)}>Crear contacto sólo con este enlace</button>
+                </div>
                 <SaveLinkPanel text={result.url} url={result.url} presetCompanyId={companyId} suggestCompany={hostOf(result.url).replace(/^www\./, '').split('.')[0]} />
               </div>
+            )}
+            {result.kind === 'url' && asContact && linkDraft && (
+              <CaptureConfirm key={result.raw + 'c'} source="qr" draft={linkDraft} presetCompanyId={companyId} banner="Sólo se conoce el enlace: completa a mano nombre, empresa y datos. El enlace queda guardado en el contacto." />
             )}
             {result.kind === 'text' && (
               <div className="stack">

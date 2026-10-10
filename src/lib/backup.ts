@@ -4,7 +4,7 @@ import { companiesCsv, contactsCsv } from './csv';
 import { getMeta, setMeta } from './repo';
 import { nowIso } from './ids';
 import {
-  SCHEMA_VERSION, type Company, type Contact, type MediaItem, type NoteItem, type Touchpoint,
+  SCHEMA_VERSION, type Company, type Contact, type MediaItem, type NoteItem, type Touchpoint, type Transcript,
 } from './types';
 
 export const FORMAT = 'siculy-scout-backup';
@@ -40,7 +40,7 @@ interface Manifest {
   files: FileEntry[];
 }
 
-export const APP_VERSION = '0.1.1';
+export const APP_VERSION = '0.2.0';
 
 // ---------- utilidades ----------
 async function sha256(data: Uint8Array): Promise<string> {
@@ -177,6 +177,16 @@ function pick<T extends object>(src: Record<string, unknown>, keys: string[]): T
   return out as T;
 }
 
+/** Transcripción: sólo campos conocidos y tipos válidos. Un estado «processing» no sobrevive a una restauración. */
+function sanitizeTranscript(v: unknown): Transcript | undefined {
+  if (!isObj(v)) return undefined;
+  const st = ['pending', 'processing', 'done', 'error'].includes(String(v.status)) ? (v.status as Transcript['status']) : 'error';
+  const t: Transcript = { status: st === 'processing' ? 'pending' : st, updatedAt: isStr(v.updatedAt) ? v.updatedAt : nowIso() };
+  for (const k of ['text', 'language', 'detected', 'model', 'noteId', 'error'] as const) if (isStr(v[k])) t[k] = v[k] as string;
+  if (typeof v.attempts === 'number') t.attempts = v.attempts;
+  return t;
+}
+
 function validateData(raw: unknown): { data: BackupData; problems: string[] } {
   const problems: string[] = [];
   const empty: BackupData = { companies: [], contacts: [], touchpoints: [], notes: [], media: [] };
@@ -198,7 +208,7 @@ function validateData(raw: unknown): { data: BackupData; problems: string[] } {
   for (const o of arr('companies')) {
     if (!checkId('companies', o)) continue;
     if (!isStr(o.name) || !o.name.trim()) { problems.push(`Empresa ${o.id} sin nombre`); continue; }
-    const c = pick<Company>(o, ['id', 'name', 'legalName', 'type', 'country', 'city', 'address', 'web', 'notes', 'priority', 'createdAt', 'updatedAt']);
+    const c = pick<Company>(o, ['id', 'name', 'legalName', 'type', 'country', 'city', 'address', 'operationalAddress', 'web', 'email', 'phone', 'notes', 'priority', 'createdAt', 'updatedAt']);
     c.type = ['supplier', 'prospect', 'both'].includes(String(o.type)) ? (o.type as Company['type']) : 'prospect';
     c.priority = ['high', 'medium', 'low'].includes(String(o.priority)) ? (o.priority as Company['priority']) : 'medium';
     c.categories = Array.isArray(o.categories) ? o.categories.filter(isStr) : [];
@@ -236,6 +246,8 @@ function validateData(raw: unknown): { data: BackupData; problems: string[] } {
     if (!isStr(o.text)) { problems.push(`Nota ${o.id} sin texto`); continue; }
     d.notes.push({
       id: o.id as string, companyId: o.companyId, text: o.text,
+      ...(o.kind === 'transcript' || o.kind === 'text' ? { kind: o.kind } : {}),
+      ...(isStr(o.sourceMediaId) ? { sourceMediaId: o.sourceMediaId } : {}),
       createdAt: isStr(o.createdAt) ? o.createdAt : nowIso(),
       updatedAt: isStr(o.updatedAt) ? o.updatedAt : (isStr(o.createdAt) ? o.createdAt : nowIso()),
     });
@@ -248,6 +260,8 @@ function validateData(raw: unknown): { data: BackupData; problems: string[] } {
     if (!optStr(o.description) || !optStr(o.thumbFile)) { problems.push(`Archivo ${o.id} con campos inválidos`); continue; }
     const m = pick<MediaMeta>(o, ['id', 'companyId', 'contactId', 'kind', 'category', 'description', 'mime', 'durationMs', 'file', 'thumbFile', 'createdAt', 'updatedAt']);
     m.mime = isStr(o.mime) ? o.mime : 'application/octet-stream';
+    const tr = sanitizeTranscript(o.transcript);
+    if (tr) m.transcript = tr;
     m.size = typeof o.size === 'number' ? o.size : 0;
     m.createdAt = isStr(o.createdAt) ? o.createdAt : nowIso();
     m.updatedAt = isStr(o.updatedAt) ? o.updatedAt : m.createdAt;

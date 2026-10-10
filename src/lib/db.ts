@@ -19,6 +19,16 @@ export class ScoutDB extends Dexie {
       notes: 'id, companyId, updatedAt',
       meta: 'key',
     });
+    // v2: índice para la cola de transcripciones (media.transcript.status) y para localizar la nota de un audio.
+    // No modifica ni borra ningún dato existente; los campos nuevos son opcionales.
+    this.version(2).stores({
+      companies: 'id, name, type, country, priority, updatedAt, createdAt',
+      contacts: 'id, companyId, email, cardPhotoId, updatedAt',
+      touchpoints: 'id, companyId, eventName, date, updatedAt',
+      media: 'id, companyId, contactId, kind, updatedAt, transcript.status',
+      notes: 'id, companyId, updatedAt, sourceMediaId',
+      meta: 'key',
+    });
   }
 }
 

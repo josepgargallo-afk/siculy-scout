@@ -32,6 +32,22 @@ export interface CardFields {
   /** Campos rellenados con baja certeza (la UI los marca «revisar»). */
   uncertain: string[];
   info: Partial<Record<FieldKey, FieldInfo>>;
+  /** Datos de la EMPRESA (no de la persona) deducidos de la tarjeta; sólo con evidencia en el texto. */
+  org: OrgFields;
+  department?: string;
+}
+
+export interface OrgFields {
+  commercialName?: string; // sin forma jurídica
+  legalName?: string; // con forma jurídica (sólo si aparece)
+  legalAddress?: string;
+  operationalAddress?: string;
+  city?: string;
+  country?: string;
+  /** país/ciudad deducidos por el prefijo telefónico o el código postal: revisar */
+  inferred: ('country' | 'city')[];
+  email?: string; // buzón genérico (info@, ventas@…)
+  phone?: string; // teléfono fijo / centralita
 }
 
 // ---------------------------------------------------------------- patrones
@@ -63,6 +79,24 @@ const STREET = '(?:via|viale|v\\.le|corso|c\\.so|piazza|p\\.zza|piazzale|strada|
 const STREET_RE = new RegExp(`(?<![\\p{L}])${STREET}(?![\\p{L}])`, 'iu');
 const POSTAL_RE = /(?:^|\s)(?:[A-Z]{1,2}[-\s]?)?\d{4,5}(?:\s?[A-Z]{2})?\s+[\p{L}]{3,}|\b[A-Z]{1,2}\d{1,2}\s?\d[A-Z]{2}\b|\(\s?[A-Z]{2}\s?\)/u;
 const ADDRESS_HEADER = /^(sede\s+(?:legale|operativa|amministrativa)|stabilimento|magazzino|uffici|headquarters?|head\s+office|registered\s+office|warehouse|plant|siège|siege|dirección|direccion|address|indirizzo|adresse)\s*:?\s*$/i;
+
+type AddrKind = 'legal' | 'operational' | 'unknown';
+const LEGAL_LABEL = /(sede\s+legale|sede\s+amministrativa|registered\s+office|head\s*quarters?|head\s+office|siège\s+social|siege\s+social|domicilio\s+(?:fiscal|social)|\bsede\b)/i;
+const OPERATIONAL_LABEL = /(sede\s+operativa|stabilimento|magazzino|unit[àa]\s+produttiva|warehouse|plant|factory|almac[ée]n|f[áa]brica|usine|entrep[ôo]t|laboratorio|production)/i;
+const kindOfLabel = (t: string): AddrKind => (OPERATIONAL_LABEL.test(t) ? 'operational' : LEGAL_LABEL.test(t) ? 'legal' : 'unknown');
+const ADDR_LABEL_INLINE = /^(sede\s+(?:legale|operativa|amministrativa)|stabilimento|magazzino|registered\s+office|head\s+office|headquarters?|warehouse|plant|siège\s+social|almac[ée]n|f[áa]brica|usine|entrep[ôo]t)\s*[:\-–]\s*(.+)$/i;
+const GENERIC_MAILBOX = /^(info|ufficio|office|contact|contacto|contatti|contatto|sales|vendite|ventas|export|ordini|orders|pedidos|amministrazione|admin|administracion|accounting|commerciale|comercial|customerservice|servizio|hello|mail|segreteria|reception|marketing|logistica|qualita|acquisti|purchasing|direzione|general|bonjour|commande|booking|supply|ufficioacquisti|assistenza|support)$/i;
+const DEPT_RE = /^(?:dept\.?|department|dipartimento|departamento|département|reparto|ufficio|servizio|service|servicio|area)\s*[:\-]?\s*(.+)$|(?:^|\s)(?:department|dipartimento|departamento|département)$/i;
+const COUNTRY_WORDS: [RegExp, string][] = [
+  [/^(italy|italia|italie)$/i, 'Italia'], [/^(spain|españa|espana|espagne)$/i, 'España'], [/^(france|francia)$/i, 'Francia'],
+  [/^(germany|deutschland|alemania|germania|allemagne)$/i, 'Alemania'], [/^(united kingdom|uk|u\.k\.|great britain|reino unido|regno unito)$/i, 'Reino Unido'],
+  [/^(portugal|portogallo)$/i, 'Portugal'], [/^(switzerland|svizzera|suisse|suiza|schweiz)$/i, 'Suiza'], [/^(belgium|belgio|belgique|bélgica)$/i, 'Bélgica'],
+  [/^(netherlands|olanda|pays-bas|países bajos|nederland)$/i, 'Países Bajos'], [/^(usa|u\.s\.a\.|united states|stati uniti|estados unidos|états-unis)$/i, 'EE. UU.'],
+];
+const PHONE_COUNTRY: [RegExp, string][] = [
+  [/^\+?39/, 'Italia'], [/^\+?34/, 'España'], [/^\+?33/, 'Francia'], [/^\+?44/, 'Reino Unido'], [/^\+?49/, 'Alemania'],
+  [/^\+?351/, 'Portugal'], [/^\+?41/, 'Suiza'], [/^\+?32/, 'Bélgica'], [/^\+?31/, 'Países Bajos'], [/^\+?1/, 'EE. UU.'],
+];
 
 const NAME_TITLE_RE = /^(sig\.ra|sig\.|sig|dott\.ssa|dott\.|dott|dr\.ssa|dr\.|dra\.|dr|ing\.|ing|avv\.|arch\.|prof\.|prof|mr\.|mr|mrs\.|mrs|ms\.|ms|mme\.|mme|m\.|sr\.|sr|sra\.|sra|d\.|don)\s+/i;
 const BUSINESS_WORDS = /(?<![\p{L}])(pasticceria|panificio|pastificio|azienda|agricola|alimentari|alimentaria|alimentation|alimentos|surgelati|congelati|congelados|surgelés|frozen|foods?|food|group|groupe|gruppo|grupo|import|export|trading|distribuzione|distribution|distribución|distributori|casa|maison|antica|antico|fratelli|figli|industria|industrie|industries|conserve|olio|oleificio|caseificio|salumificio|cantina|vini|wines?|spa|srl|ltd|gmbh|sarl|company|co\.|corp|laboratorio|produzione|prodotti|products|productos|produits|sapori|gusti|dolci|bakery|company|international|internacional|italia|italy|sicilia|sicily|sicilian|siciliana|siciliano|napoli|roma|milano|espa[ñn]a|france|spain|catering|hotel|ristorante|restaurant)(?![\p{L}])/iu;
@@ -256,7 +290,7 @@ const toLevel = (c: number): FieldInfo['level'] => (c >= 0.75 ? 'high' : 'review
 
 // ---------------------------------------------------------------- parser principal
 export function parseCard(input: OcrLineIn[]): CardFields {
-  const out: CardFields = { emails: [], addresses: [], extras: [], uncertain: [], info: {} };
+  const out: CardFields = { emails: [], addresses: [], extras: [], uncertain: [], info: {}, org: { inferred: [] } };
   const repairedAt = new Set<string>();
   const lines = input
     .map((l) => ({ text: l.text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim(), conf: (l.conf ?? 90) / 100 }))
@@ -320,34 +354,54 @@ export function parseCard(input: OcrLineIn[]): CardFields {
   for (const [lab, p] of leftPhones) out.extras.push(`${lab}: ${p.raw}`);
   for (const h of phones) { const i = phoneLine(h); if (i >= 0 && lines[i].text.replace(/[\d\s().+\-\/:]|tel|mob|cell|fax|móvil|movil|portable|[mtf]\b/gi, '').trim().length < 3) used.add(i); }
 
-  // ---- direcciones
-  lines.forEach((l, i) => {
-    if (used.has(i)) return;
-    if (ADDRESS_HEADER.test(l.text)) { used.add(i); return; }
-  });
+  // ---- direcciones (con etiqueta legal / operativa cuando la tarjeta la trae)
+  const addrList: { text: string; kind: AddrKind; line: number }[] = [];
+  let pendingKind: AddrKind = 'unknown';
   for (let i = 0; i < lines.length; i++) {
     if (used.has(i)) continue;
-    const t = lines[i].text;
+    let t = lines[i].text;
+    if (ADDRESS_HEADER.test(t)) { pendingKind = kindOfLabel(t); used.add(i); continue; }
+    let kind: AddrKind = pendingKind;
+    const inline = t.match(ADDR_LABEL_INLINE);
+    if (inline) { kind = kindOfLabel(inline[1]); t = inline[2]; lines[i].text = t; }
     if (FISCAL.test(t) || plausibility(t) < 0.4) continue;
     const street = STREET_RE.test(t) && /\d/.test(t);
     if (!street) continue;
     const parts = [t]; used.add(i);
     const next = lines[i + 1];
     if (next && !used.has(i + 1) && POSTAL_RE.test(next.text) && !ROLE_RE.test(next.text) && !FISCAL.test(next.text) && !STREET_RE.test(next.text)) { parts.push(next.text); used.add(i + 1); }
-    out.addresses.push(parts.join(', '));
+    addrList.push({ text: parts.join(', '), kind, line: i });
+    pendingKind = 'unknown';
   }
   // «CAP Ciudad» suelto (sin calle detectada) → dirección parcial
   for (let i = 0; i < lines.length; i++) {
     if (used.has(i)) continue;
     const t = lines[i].text;
-    if (/^\s*(?:[A-Z]{1,2}[-\s]?)?\d{5}\s+\p{L}{3,}/u.test(t) && !/@|\+|tel/i.test(t) && !FISCAL.test(t)) { out.addresses.push(t); used.add(i); }
+    if (/^\s*(?:[A-Z]{1,2}[-\s]?)?\d{5}\s+\p{L}{3,}/u.test(t) && !/@|\+|tel/i.test(t) && !FISCAL.test(t)) { addrList.push({ text: t, kind: pendingKind, line: i }); used.add(i); }
   }
-  if (out.addresses[0]) {
-    out.address = out.addresses[0];
-    const i = lines.findIndex((l) => out.addresses[0].startsWith(l.text));
-    setInfo('address', (i >= 0 ? lineConf(i) : 0.7) * 0.95, out.addresses.slice(1));
-    for (const a of out.addresses.slice(1)) out.extras.push(`Dirección: ${a}`);
+  out.addresses = addrList.map((a) => a.text);
+  if (addrList.length) {
+    const legal = addrList.find((a) => a.kind === 'legal') ?? addrList.find((a) => a.kind === 'unknown');
+    const oper = addrList.find((a) => a.kind === 'operational');
+    if (legal) {
+      out.address = legal.text; out.org.legalAddress = legal.text;
+      setInfo('address', lineConf(legal.line) * 0.95, addrList.filter((a) => a !== legal).map((a) => a.text));
+    }
+    if (oper) out.org.operationalAddress = oper.text;
+    if (!legal && oper) { out.address = oper.text; setInfo('address', lineConf(oper.line) * 0.95); }
+    for (const a of addrList) if (a !== legal && a !== oper) out.extras.push(`Dirección: ${a.text}`);
+    // ciudad: «CAP Ciudad (PR)» en la dirección legal (o la primera)
+    const cityHit = (legal ?? oper ?? addrList[0]).text.match(/(?:^|[\s,])(?:[A-Z]{1,2}[-\s]?)?\d{4,5}\s+([\p{L}][\p{L}'’.\- ]{1,40}?)\s*(?:\(\s*[A-Z]{2}\s*\))?\s*$/u);
+    if (cityHit) out.org.city = cityHit[1].trim();
   }
+
+  // ---- departamento (sólo con palabra clave explícita; un «Responsable Ufficio Acquisti» sigue siendo cargo)
+  const STRONG_ROLE = /(responsab|director|direttore|manager|gerente|head|chief|jefe)/i;
+  lines.forEach((l, i) => {
+    if (used.has(i) || out.department || l.text.length > 50 || /@|\d{3}/.test(l.text) || STRONG_ROLE.test(l.text) || plausibility(l.text) < 0.55) return;
+    const m = l.text.match(DEPT_RE);
+    if (m) { out.department = cleanEdges(m[1] ?? l.text); used.add(i); }
+  });
 
   // ---- cargo
   const roleCands = lines.map((l, i) => ({ l, i })).filter(({ l, i }) =>
@@ -432,9 +486,20 @@ export function parseCard(input: OcrLineIn[]): CardFields {
 
   // ---- email principal: corporativo con nombre coincidente > corporativo > personal
   if (out.emails.length) {
-    const rank = (e: EmailHit) => (e.kind === 'corporate' ? 10 : 0) + (out.fullName ? nameEmailBonus(out.fullName, [e.address]) : 0) - (emailLines.get(e.address)! * 0.01);
+    const rank = (e: EmailHit) => (e.kind === 'corporate' ? 10 : 0) - (GENERIC_MAILBOX.test(e.address.split('@')[0].replace(/\d+/g, '')) ? 20 : 0) + (out.fullName ? nameEmailBonus(out.fullName, [e.address]) : 0) - (emailLines.get(e.address)! * 0.01);
     const sorted = [...out.emails].sort((a, b) => rank(b) - rank(a));
     out.emails = sorted;
+    const isGeneric = (e: EmailHit) => GENERIC_MAILBOX.test(e.address.split('@')[0].replace(/\d+/g, ''));
+    const generic = sorted.find((e) => isGeneric(e) && e.kind === 'corporate');
+    if (generic) out.org.email = generic.address;
+    const personal = sorted.filter((e) => !isGeneric(e));
+    if (!personal.length) {
+      // sólo hay buzones genéricos: pertenecen a la empresa, no a la persona
+      for (const e of sorted.filter((x) => x.address !== out.org.email)) out.extras.push(`Email ${e.kind === 'personal' ? 'personal' : 'corporativo'}: ${e.address}`);
+    }
+  }
+  if (out.emails.length && out.emails.some((e) => !GENERIC_MAILBOX.test(e.address.split('@')[0].replace(/\d+/g, '')))) {
+    const sorted = out.emails.filter((e) => !GENERIC_MAILBOX.test(e.address.split('@')[0].replace(/\d+/g, '')));
     out.email = sorted[0].address;
     const i = emailLines.get(out.email)!;
     let conf = lineConf(i) * 0.98;
@@ -443,8 +508,29 @@ export function parseCard(input: OcrLineIn[]): CardFields {
     const el = domainLabel(out.email.split('@')[1]);
     if (wl && el && wl !== el && sim(wl, el) >= 0.6 && sim(wl, el) < 1 && !FREE_MAIL.test(out.email.split('@')[1])) conf = Math.min(conf, 0.6); // email y web casi iguales: posible fallo de OCR
     setInfo('email', conf, sorted.slice(1).map((e) => e.address));
-    for (const e of sorted.slice(1)) out.extras.push(`Email ${e.kind === 'personal' ? 'personal' : 'corporativo'}: ${e.address}`);
+    for (const e of out.emails.filter((x) => x.address !== out.email && x.address !== out.org.email)) out.extras.push(`Email ${e.kind === 'personal' ? 'personal' : 'corporativo'}: ${e.address}`);
   }
+
+  // ---- datos de la empresa
+  if (out.company) {
+    const legal = hasLegalSuffix(out.company);
+    const stripped = out.company.replace(/[\s,]+(?:S\.?\s?r\.?\s?l\.?s?|S\.?\s?p\.?\s?A\.?|S\.?\s?a\.?\s?s\.?|S\.?\s?n\.?\s?c\.?|S\.?\s?L\.?\s?U?\.?|S\.?\s?A\.?\s?R\.?\s?L\.?|S\.?\s?A\.?|GmbH|Ltd\.?|Limited|LLC|Inc\.?|B\.?V\.?|N\.?V\.?|AG)\.?\s*$/i, '').trim();
+    out.org.commercialName = legal && stripped.length >= 2 ? stripped : out.company;
+    if (legal) out.org.legalName = out.company;
+  }
+  // país: palabra de país explícita en la tarjeta > prefijo telefónico (deducido → «revisar»)
+  const countryLine = lines.findIndex((l) => COUNTRY_WORDS.some(([re]) => re.test(l.text.replace(/[.,]$/, '').trim())));
+  if (countryLine >= 0) {
+    const t = lines[countryLine].text.replace(/[.,]$/, '').trim();
+    out.org.country = COUNTRY_WORDS.find(([re]) => re.test(t))![1];
+    used.add(countryLine);
+  } else {
+    const num = (out.phone ?? out.mobile ?? '').replace(/^00/, '+').replace(/[^\d+]/g, '');
+    const hit = num.startsWith('+') ? PHONE_COUNTRY.find(([re]) => re.test(num)) : undefined;
+    if (hit) { out.org.country = hit[1]; out.org.inferred.push('country'); }
+  }
+  if (out.org.city && out.org.legalAddress && /\d{4,5}\s/.test(out.org.legalAddress)) { /* ciudad leída del propio texto de la dirección */ }
+  if (out.phone) out.org.phone = out.phone; // el fijo/centralita sirve también como teléfono corporativo (editable)
 
   // ---- lo no clasificado (conservado, sin basura)
   lines.forEach((l, i) => {
@@ -477,4 +563,33 @@ function cleanCompany(t: string): string {
 /** Compatibilidad: analiza texto plano (sin confianza por línea). */
 export function parseCardText(raw: string): CardFields {
   return parseCard(raw.split(/\r?\n/).map((text) => ({ text })));
+}
+
+// ---- utilidades compartidas con la importación de QR / vCard
+export function countryFromPhone(phone: string): string | undefined {
+  const num = phone.replace(/^00/, '+').replace(/[^\d+]/g, '');
+  return num.startsWith('+') ? PHONE_COUNTRY.find(([re]) => re.test(num))?.[1] : undefined;
+}
+export function normalizeCountry(text: string): string | undefined {
+  const t = text.replace(/[.,]$/, '').trim();
+  return COUNTRY_WORDS.find(([re]) => re.test(t))?.[1];
+}
+export function isGenericMailbox(address: string): boolean {
+  return GENERIC_MAILBOX.test(address.split('@')[0].replace(/\d+/g, ''));
+}
+export function isFreeMail(address: string): boolean {
+  return FREE_MAIL.test(address.split('@')[1] ?? '');
+}
+/** «Alfa Foods S.r.l.» → «Alfa Foods» (sólo si lleva forma jurídica reconocible). */
+export function splitLegalName(name: string): { commercial: string; legal?: string } {
+  const n = name.trim();
+  if (!hasLegalSuffix(n)) return { commercial: n };
+  const stripped = n.replace(/[\s,]+(?:S\.?\s?r\.?\s?l\.?s?|S\.?\s?p\.?\s?A\.?|S\.?\s?a\.?\s?s\.?|S\.?\s?n\.?\s?c\.?|S\.?\s?L\.?\s?U?\.?|S\.?\s?A\.?\s?R\.?\s?L\.?|S\.?\s?A\.?|GmbH|Ltd\.?|Limited|LLC|Inc\.?|B\.?V\.?|N\.?V\.?|AG)\.?\s*$/i, '').trim();
+  return { commercial: stripped.length >= 2 ? stripped : n, legal: n };
+}
+
+/** ¿El formato del número es el de un móvil (IT/ES/FR/UK/DE)? Sirve cuando la fuente no indica el tipo. */
+export function looksMobile(phone: string): boolean {
+  const compact = phone.replace(/^00/, '+').replace(/[^\d+]/g, '');
+  return MOBILE_PATTERNS.some((p) => p.test(compact));
 }

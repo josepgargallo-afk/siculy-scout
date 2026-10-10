@@ -12,6 +12,8 @@ import { CardCapture } from './ui/CardCapture';
 import { QrCapture } from './ui/QrCapture';
 import { BackupScreen } from './ui/BackupScreen';
 import { SettingsScreen } from './ui/SettingsScreen';
+import { ImportVcf } from './ui/ImportVcf';
+import { resumeTranscriptionOnStart } from './lib/whisperClient';
 
 function Shell() {
   const { path, parts, query } = useRoute();
@@ -23,6 +25,7 @@ function Shell() {
   useEffect(() => {
     db.open().catch((e) => setDbError(String(e?.message ?? e)));
     void requestPersistence();
+    void db.open().then(() => resumeTranscriptionOnStart()).catch(() => undefined);
     const u = () => setUpdate(true);
     const o = () => ui.toast('Lista para funcionar sin conexión');
     window.addEventListener('scout:update-ready', u);
@@ -46,6 +49,7 @@ function Shell() {
   else if (parts[0] === 'c') screen = <CompanyView id={parts[1]} />;
   else if (path === '/scan/card') screen = <Boundary name="Escáner de tarjetas"><CardCapture companyId={query.get('c') ?? undefined} /></Boundary>;
   else if (path === '/scan/qr') screen = <Boundary name="Escáner QR"><QrCapture companyId={query.get('c') ?? undefined} /></Boundary>;
+  else if (path === '/import') screen = <Boundary name="Importar vCard"><ImportVcf /></Boundary>;
   else if (path === '/backup') screen = <BackupScreen />;
   else if (path === '/settings') screen = <SettingsScreen />;
   else screen = <Directory />;

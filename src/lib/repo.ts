@@ -119,11 +119,12 @@ export async function deleteMedia(id: string) {
   });
 }
 
-export async function saveNote(input: { id?: string; companyId: string; text: string }): Promise<NoteItem> {
+export async function saveNote(input: { id?: string; companyId: string; text: string; kind?: NoteItem['kind']; sourceMediaId?: string }): Promise<NoteItem> {
   const t = nowIso();
   const existing = input.id ? await db.notes.get(input.id) : undefined;
   const note: NoteItem = {
     id: existing?.id ?? uuid(), companyId: input.companyId, text: input.text,
+    kind: input.kind ?? existing?.kind, sourceMediaId: input.sourceMediaId ?? existing?.sourceMediaId,
     createdAt: existing?.createdAt ?? t, updatedAt: t,
   };
   await db.transaction('rw', db.notes, db.companies, db.meta, async () => {

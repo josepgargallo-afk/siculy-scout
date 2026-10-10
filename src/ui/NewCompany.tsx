@@ -92,6 +92,7 @@ export function NewCompany({ initialName = '' }: { initialName?: string }) {
             <div className="grid2">
               {s.ocrEnabled && <button className="btn" onClick={() => navigate('/scan/card')}>📇 Escanear tarjeta</button>}
               {s.qrEnabled && <button className="btn" onClick={() => navigate('/scan/qr')}>▦ Escanear QR</button>}
+              <button className="btn" style={{ gridColumn: '1 / -1' }} onClick={() => navigate('/import')}>📥 Importar archivo .vcf</button>
             </div>
           </div>
         )}

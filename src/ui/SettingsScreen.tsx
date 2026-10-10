@@ -1,4 +1,8 @@
 import { useEffect, useState } from 'react';
+import { WHISPER_LANGS } from '../lib/audioPrep';
+import { installWhisper, kickTranscription, removeWhisperModel } from '../lib/whisperClient';
+import { pendingCount } from '../lib/transcribe';
+import { formatBytes as fmtB } from '../lib/storage';
 import { APP_VERSION } from '../lib/backup';
 import { isOcrCached, prepareOcrOffline } from '../lib/ocr';
 import { saveSettings } from '../lib/settings';
@@ -15,6 +19,9 @@ export function SettingsScreen() {
   const [cached, setCached] = useState<boolean | null>(null);
   const [prep, setPrep] = useState<string | null>(null);
   const [st, setSt] = useState<StorageInfo | null>(null);
+  const [wprog, setWprog] = useState<string | null>(null);
+  const [pend, setPend] = useState(0);
+  useEffect(() => { void pendingCount().then(setPend); }, [wprog, s.transcriptionEnabled]);
   useEffect(() => { void isOcrCached(s.ocrLangs).then(setCached); void getStorageInfo().then(setSt); }, [s.ocrLangs]);
 
   const ev = s.event;
@@ -59,6 +66,39 @@ export function SettingsScreen() {
             catch (e) { setPrep(null); ui.toast((e as Error).message, 'err'); }
           }}>{prep ?? (cached ? 'Ya descargado' : online ? 'Descargar ahora' : 'Necesitas conexión')}</button>
           <div className="small">Los archivos vienen de esta misma app (no de terceros) y se guardan en el móvil.</div>
+        </div>
+
+        <div className="card stack">
+          <h2>Transcripción de audio <span className="chip">experimental</span></h2>
+          <div className="small">
+            Convierte cada grabación en una nota de texto editable, <b>en el propio móvil</b>, sin coste y sin enviar el audio a ningún sitio.
+            Usa Whisper (modelo abierto). Se descarga <b>una sola vez</b> desde Hugging Face (sólo el modelo, ~{s.whisperModel === 'base' ? '76' : '42'} MB, con Wi-Fi) y después funciona sin conexión.
+          </div>
+          <div className="banner warn">No está validada en Android: puede ser lenta (30 s de audio pueden tardar de decenas de segundos a minutos) o gastar batería. El audio siempre se conserva aunque falle. La transcripción es <b>literal y puede contener errores</b>: revísala antes de fiarte de nombres, cifras o precios.</div>
+          <Field label="Modelo">
+            <select value={s.whisperModel} disabled={!!wprog} onChange={(e) => saveSettings({ whisperModel: e.target.value as 'tiny' | 'base' })}>
+              <option value="base">Base (76 MB) — más preciso, recomendado</option>
+              <option value="tiny">Tiny (42 MB) — más rápido, menos preciso</option>
+            </select>
+          </Field>
+          <Field label="Idioma de los audios" hint="Siempre se indica el idioma: el modo automático falla (traduce o repite frases).">
+            <select value={s.transcriptionLang} onChange={(e) => saveSettings({ transcriptionLang: e.target.value })}>
+              {Object.entries(WHISPER_LANGS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </Field>
+          {s.whisperInstalled === s.whisperModel ? <div className="saved">✓ Modelo «{s.whisperInstalled}» instalado en este móvil.</div> : (
+            <button className="btn" disabled={!online || !!wprog} onClick={async () => {
+              try {
+                setWprog('Descargando… 0 %');
+                await installWhisper(s.whisperModel, (l, t) => setWprog(t ? `Descargando… ${Math.round((100 * l) / t)} % (${fmtB(l)} de ${fmtB(t)})` : 'Preparando…'));
+                setWprog(null); ui.toast('Modelo instalado');
+              } catch (e) { setWprog(null); ui.toast('No se pudo instalar: ' + (e as Error).message, 'err'); }
+            }}>{wprog ?? (online ? 'Descargar modelo' : 'Necesitas conexión para descargarlo')}</button>
+          )}
+          <label className="row"><input type="checkbox" checked={s.transcriptionEnabled} disabled={!s.whisperInstalled}
+            onChange={(e) => { saveSettings({ transcriptionEnabled: e.target.checked }); if (e.target.checked) void kickTranscription(); }} /> Transcribir automáticamente después de cada grabación</label>
+          {pend > 0 && <div className="row"><span className="small grow">{pend} audio(s) en cola.</span><button className="btn sm" onClick={() => { void kickTranscription({ force: true }); ui.toast('Procesando la cola…'); }}>Procesar ahora</button></div>}
+          {s.whisperInstalled && <button className="btn sm" onClick={async () => { if (await ui.confirm({ title: '¿Quitar el modelo?', message: 'Se libera el espacio. Los audios y notas no se tocan.', confirmLabel: 'Quitar' }) === true) { await removeWhisperModel(); ui.toast('Modelo eliminado'); } }}>Quitar modelo (liberar espacio)</button>}
         </div>
 
         <div className="card stack">

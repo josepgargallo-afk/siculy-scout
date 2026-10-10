@@ -1,30 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { parseCard, type CardFields, type FieldKey } from '../lib/ocrParse';
+import { parseCard } from '../lib/ocrParse';
+import { draftFromCard } from '../lib/importDraft';
 import { OCR_LANG_LABEL, decodeRaster, isOcrCached, prepareOcrOffline, rasterToJpeg, scanCardBlob, type CardScan } from '../lib/ocr';
 import { cropRaster, rotateRaster, type Raster, type Rotation } from '../lib/raster';
 import { saveSettings } from '../lib/settings';
 import { CaptureConfirm } from './capture';
-import { emptyContact, type ContactFields } from './ContactForm';
 import { Header, Spinner, useUi } from './kit';
 import { useObjectUrl, useOnline, useSettings } from './hooks';
-
-function toFields(f: CardFields): { fields: ContactFields; flags: string[]; alts: Partial<Record<keyof ContactFields, string[]>>; company: string; companyAlts: string[] } {
-  const alt = (k: FieldKey) => f.info[k]?.alternatives ?? [];
-  return {
-    fields: {
-      ...emptyContact,
-      fullName: f.fullName ?? '', role: f.role ?? '', email: f.email ?? '', phone: f.phone ?? '', mobile: f.mobile ?? '',
-      webOrLinkedin: f.web ?? '',
-      notes: [f.addresses[0] && `Dirección: ${f.addresses[0]}`, ...f.extras].filter(Boolean).join('\n'),
-    },
-    flags: f.uncertain.map((k) => (k === 'web' ? 'webOrLinkedin' : k)),
-    alts: {
-      fullName: alt('fullName'), role: alt('role'), email: alt('email'), phone: alt('phone'), mobile: alt('mobile'), webOrLinkedin: alt('web'),
-    },
-    company: f.company ?? '',
-    companyAlts: alt('company'),
-  };
-}
 
 type Step = { s: 'pick' } | { s: 'busy'; label: string; pct?: number } | { s: 'result' };
 
@@ -188,10 +170,10 @@ function Result({ work, jpeg, previewUrl, companyId, failed, cropping, onCrop, o
   onRotate: (d: 90 | 270) => void; onRescan: () => void; onNew: () => void;
 }) {
   const { scan } = work;
-  const parsed = useMemo(() => toFields(parseCard(scan.pass.lines.length ? scan.pass.lines : scan.pass.text.split('\n').map((text) => ({ text })))), [scan]);
+  const draft = useMemo(() => draftFromCard(parseCard(scan.pass.lines.length ? scan.pass.lines : scan.pass.text.split('\n').map((text) => ({ text })))), [scan]);
   const noText = !scan.pass.text.trim();
-  const f = parsed.fields;
-  const nothing = !parsed.company && !f.fullName && !f.email && !f.phone && !f.mobile && !f.webOrLinkedin;
+  const f = draft.contact;
+  const nothing = !draft.company.name && !f.fullName && !f.email && !f.phone && !f.mobile && !draft.company.web;
   const sc = scan.orientationScores;
   const banner = failed
     ?? (noText ? 'No se detectó texto. Prueba a girar la imagen, recortarla o repetir el escaneo; o rellena a mano (la foto se guardará).'
@@ -212,8 +194,7 @@ function Result({ work, jpeg, previewUrl, companyId, failed, cropping, onCrop, o
       )}
       <CaptureConfirm
         key={work.id}
-        source="ocr" image={jpeg} imagePending={!jpeg} presetCompanyId={companyId} suggestCompany={parsed.company} companyAlts={parsed.companyAlts}
-        initial={parsed.fields} flags={parsed.flags} alts={parsed.alts} banner={banner}
+        source="ocr" image={jpeg} imagePending={!jpeg} presetCompanyId={companyId} draft={draft} banner={banner}
         raw={{ label: 'Texto detectado por OCR (original)', text: scan.pass.text }}
       />
       <details className="card">
