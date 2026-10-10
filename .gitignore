@@ -1,0 +1,11 @@
+node_modules
+dist
+public/ocr
+*.log
+.env*
+# Copias de seguridad y datos personales: NUNCA en el repositorio
+*.zip
+backups/
+siculy-scout-*.json
+siculy-scout-*.csv
+.claude/
