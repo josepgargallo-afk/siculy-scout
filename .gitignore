@@ -9,3 +9,7 @@ backups/
 siculy-scout-*.json
 siculy-scout-*.csv
 .claude/
+
+# Fotos reales de tarjetas para pruebas locales (datos personales)
+local-photos/
+ocr-private/

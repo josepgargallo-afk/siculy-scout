@@ -133,3 +133,10 @@ audio { width: 100%; }
 details > summary { cursor: pointer; font-weight: 650; padding: 6px 0; }
 .ocrtext { font-family: ui-monospace, Consolas, monospace; font-size: .82rem; min-height: 120px; }
 .warnmark { color: var(--warn); font-weight: 700; }
+
+.alts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.chip.alt { border: 1px dashed var(--navy2); background: #fff; cursor: pointer; font-size: .8rem; padding: 5px 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.cropbox { position: relative; touch-action: none; user-select: none; background: #000; border-radius: 8px; overflow: hidden; }
+.cropbox img { width: 100%; display: block; pointer-events: none; }
+.cropbox .sel { position: absolute; border: 2px solid var(--gold); background: rgba(244,185,66,.18); pointer-events: none; }
+.preview { max-height: 38vh; width: auto; max-width: 100%; border-radius: 8px; display: block; margin: 0 auto; }

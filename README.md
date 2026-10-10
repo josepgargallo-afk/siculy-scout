@@ -24,6 +24,8 @@ npm install
 npm run dev        # http://localhost:5173 (también accesible desde la red local)
 npm test           # 56 pruebas automáticas
 npm run build      # genera dist/ (incluye los recursos OCR ≈ 20 MB)
+npm run test:ocr   # OCR REAL sobre tarjetas sintéticas (lento): precisión por campo y tiempos
+npm run ocr:photo -- "ruta\mi-tarjeta.jpg"   # prueba local con TU foto; sólo imprime en la terminal
 npm run preview    # sirve dist/ en http://localhost:4173
 ```
 
@@ -71,7 +73,7 @@ Requiere Node 20+. `npm run dev`/`build` copian automáticamente los recursos OC
 ## Decisiones y límites reales (leer)
 
 - **Dictado**: la solución recomendada y 100 % gratuita/local es el **micrófono del teclado del móvil** (Gboard) en cualquier campo de texto. El botón «Dictar» del navegador (Web Speech) **envía el audio a Google** y necesita Internet, por eso viene **desactivado**; se activa en Ajustes con aviso. **No hay transcripción automática de los audios grabados** (no existe opción gratuita, local y fiable en navegador): se conserva el audio y hay un campo para escribir resumen/transcripción.
-- **OCR**: calidad variable con la foto (luz, reflejos, fuentes decorativas, tarjetas con fondo oscuro). Nunca se asigna un dato dudoso: se deja vacío o se marca «⚠ revisar». Apellidos compuestos no se separan. Se muestra siempre el texto OCR original para corregir. La primera ejecución carga ≈ 4 MB de WASM y puede tardar unos segundos; en un Galaxy S25 Ultra debería ir fluido, pero **no se ha medido en el dispositivo**.
+- **OCR de tarjetas** (pipeline v2): la imagen se decodifica respetando EXIF, se evalúa la orientación con lecturas rápidas (1 si la foto ya está derecha; hasta 4 si está girada), se mejora el contraste y se lee con Tesseract a `psm 11` (texto disperso, adecuado para logotipos y bloques). Un parser **independiente** del OCR asigna campos con puntuaciones: empresa (forma jurídica estricta o coincidencia con el dominio del email/web), persona (apoyada en el email y en la cercanía al cargo), cargo multilingüe, todos los emails (corporativo/personal), móvil vs fijo vs fax (por etiqueta o por formato del número), web, varias direcciones, CIF/IVA como dato extra. Cada campo lleva confianza: lo dudoso se marca «⚠ revisar» y los valores alternativos aparecen como botones; lo ilegible **no se rellena** ni se usa como nombre de empresa. Siempre se ve el texto OCR original y se puede girar (⟲ ⟳), recortar, repetir o rellenar a mano; la foto se guarda enderezada. **Límites**: sin corrección de perspectiva (tarjeta muy inclinada), poca fiabilidad con tipografías muy decorativas, reflejos o texto pequeño; en el móvil real el tiempo es **desconocido** (en escritorio: ~2 s con la foto derecha y ~3-4 s si está girada; en el navegador de pruebas 7-15 s). Probar siempre con tarjetas reales (ver docs/PRUEBAS_MANUALES.md).
 - **QR de enlace**: sólo se guarda la URL; no se abre sola ni se lee su contenido. «Abrir» pide confirmación y se abre externamente.
 - **Fotos** se redimensionan (lado largo 2000 px, tarjetas 2400 px, JPEG 85–90 %), lo que además elimina metadatos EXIF/GPS. Se conserva la foto recodificada, no el archivo original bit a bit. HEIC no soportado por el navegador se rechaza con aviso.
 - **Almacenamiento**: IndexedDB del navegador; la cuota depende del móvil (suele ser de varios GB). La app pide almacenamiento persistente y muestra el uso. **Borrar datos de Chrome, desinstalar la PWA o resetear el móvil elimina los datos**: haz copias.
@@ -87,7 +89,8 @@ Requiere Node 20+. `npm run dev`/`build` copian automáticamente los recursos OC
 src/lib/      lógica pura y datos (db, repo, backup, ocrParse, qrParse, duplicates, csv…)
 src/ui/       pantallas React
 src/__tests__ pruebas (Vitest + fake-indexeddb)
-scripts/      copy-ocr.mjs (recursos OCR), make-icons.mjs
+scripts/      copy-ocr.mjs (recursos OCR), make-icons.mjs, ocr-photo.mjs (foto local)
+src/__tests__/ocr/  banco de OCR real (tarjetas sintéticas ficticias, no entra en `npm test`)
 docs/         PRUEBAS_MANUALES.md
 ```
 

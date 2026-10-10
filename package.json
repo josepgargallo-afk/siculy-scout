@@ -10,7 +10,9 @@
     "preview": "vite preview --host",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "test:ocr": "vitest run --config vitest.ocr.config.ts",
+    "ocr:photo": "node scripts/ocr-photo.mjs"
   },
   "keywords": [],
   "author": "",

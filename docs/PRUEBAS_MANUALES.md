@@ -32,13 +32,22 @@ Prepara: tarjetas de visita reales (ES/IT/EN/FR si es posible, una con fondo osc
 - [ ] Grabar y salir de la ficha mientras graba → el audio queda guardado.
 - [ ] Anotar si la grabación se corta con la pantalla bloqueada.
 
-## 4. Escáner de tarjetas (P1)
-- [ ] Fotografiar una tarjeta real en español, italiano, inglés y francés (una de cada): ¿qué campos acierta? Anotar errores.
-- [ ] Verificar que los campos dudosos aparecen resaltados «⚠ revisar» y que el texto OCR se ve y se puede corregir + «Volver a analizar».
+## 4. Escáner de tarjetas (P1) — PRUEBA CRÍTICA TRAS LA CORRECCIÓN DEL OCR
+Usa la tarjeta real que falló y 3-4 más. Anota para cada una lo que ves.
+- [ ] **Foto girada**: con el móvil en vertical, fotografía la tarjeta horizontal SIN girarla. La pantalla de resultado debe mostrarla **derecha** y rellenar empresa, persona, cargo, email(s) y teléfonos. Diagnóstico (desplegable al final): giro aplicado ______°, tiempo ______ s.
+- [ ] **Foto derecha** (misma tarjeta): resultado equivalente; tiempo ______ s (primera vez) / ______ s (siguientes).
+- [ ] Empresa: ¿es el nombre correcto o queda vacío con alternativas? **Nunca** debe aparecer texto ininteligible (p. ej. «7a 7 sa À»).
+- [ ] Emails: ¿aparecen los dos (personal y corporativo)? El principal debe ser el corporativo; el otro va en Notas como «Email personal».
+- [ ] Teléfonos: móvil en «Móvil» y el de la empresa en «Teléfono». Direcciones en Notas.
+- [ ] Los campos dudosos salen «⚠ revisar» y las alternativas aparecen como botones tocables.
+- [ ] Botones **⟲ ⟳ Girar**, **✂ Recortar** (arrastra sobre la tarjeta y «Leer el recorte»), **↻ Repetir**, **Otra tarjeta**: todos responden.
+- [ ] Girar a propósito a una orientación mala → no rellena basura y avisa.
+- [ ] Guardar: el contacto queda con la **foto de la tarjeta derecha** (ábrela desde el contacto). Probar «empresa nueva» y «empresa existente».
 - [ ] Tarjeta ilegible/foto borrosa → se puede guardar la foto y rellenar a mano.
-- [ ] Guardar: el contacto queda con la foto de la tarjeta; crear empresa nueva y también asignar a una existente.
-- [ ] **Modo avión** (con OCR descargado): escanear una tarjeta y comprobar que funciona.
-- [ ] Tiempo de OCR medido: ______ s (primera vez) / ______ s (siguientes).
+- [ ] Tarjeta en español, italiano, inglés y francés (una de cada): campos acertados / fallados: ______
+- [ ] Tarjeta con fondo oscuro o muy decorada: ______
+- [ ] **Modo avión** (con OCR descargado): repetir una de las anteriores.
+- [ ] Si es muy lento (> 30 s) o falla: Ajustes → dejar sólo Inglés + Italiano; probar de nuevo. Si sigue mal, usar «Sólo guardar la foto» y rellenar a mano.
 
 ## 5. Escáner QR (P1)
 - [ ] Cámara trasera: leer un QR vCard → formulario editable → asignar a empresa existente y a una nueva.

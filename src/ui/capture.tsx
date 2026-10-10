@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { db } from '../lib/db';
 import { addMedia, createCompany, deleteMedia, saveContact, saveNote, updateCompany } from '../lib/repo';
 import { findCompanyDuplicates, findContactDuplicates } from '../lib/duplicates';
+import { plausibility } from '../lib/ocrParse';
 import { optimizeImage } from '../lib/image';
 import { uuid } from '../lib/ids';
 import { describeSaveError } from '../lib/storage';
 import { getSettings } from '../lib/settings';
 import type { Company } from '../lib/types';
-import { ContactFieldsForm, toContactPatch, type ContactFields } from './ContactForm';
+import { Alts, ContactFieldsForm, toContactPatch, type ContactFields } from './ContactForm';
 import { Field, useUi } from './kit';
 import { navigate } from './router';
 import { useLive, useObjectUrl } from './hooks';
@@ -15,8 +16,8 @@ import { useLive, useObjectUrl } from './hooks';
 export type Target = { kind: 'existing'; id: string } | { kind: 'new'; name: string };
 
 /** Elige la empresa destino: la indicada, una existente o una nueva (avisando de posibles duplicados). */
-export function CompanyPicker({ presetId, suggestName, value, onChange }: {
-  presetId?: string; suggestName?: string; value: Target; onChange: (t: Target) => void;
+export function CompanyPicker({ presetId, suggestName, value, onChange, nameAlts }: {
+  presetId?: string; suggestName?: string; value: Target; onChange: (t: Target) => void; nameAlts?: string[];
 }) {
   const [all] = useLive(() => db.companies.orderBy('name').toArray(), [], [] as Company[]);
   const [q, setQ] = useState('');
@@ -34,7 +35,8 @@ export function CompanyPicker({ presetId, suggestName, value, onChange }: {
       </div>
       {value.kind === 'new' ? (
         <>
-          <Field label="Nombre de la empresa *"><input type="text" value={value.name} onChange={(e) => onChange({ kind: 'new', name: e.target.value })} /></Field>
+          <Field label={"Nombre de la empresa *" + (!value.name.trim() && nameAlts?.length ? " (elige o escribe)" : "")}><input type="text" value={value.name} onChange={(e) => onChange({ kind: 'new', name: e.target.value })} /></Field>
+          <Alts values={nameAlts} current={value.name} onPick={(v) => onChange({ kind: 'new', name: v })} />
           {dups.length > 0 && (
             <div className="banner warn"><b>¿Es alguna de estas?</b>
               {dups.map((d) => <div key={d.company.id}><button className="btn sm" onClick={() => onChange({ kind: 'existing', id: d.company.id })}>Usar «{d.company.name}»</button></div>)}
@@ -60,6 +62,10 @@ export async function resolveTarget(t: Target, ui: ReturnType<typeof useUi>): Pr
   }
   const name = t.name.trim();
   if (!name) { ui.toast('Escribe el nombre de la empresa', 'err'); return null; }
+  if (plausibility(name) < 0.45) {
+    const ok = await ui.confirm({ title: '¿Nombre de empresa ilegible?', message: <>«{name}» no parece un nombre de empresa. Corrígelo antes de crear la ficha.</>, confirmLabel: 'Crear igualmente', cancelLabel: 'Corregir' });
+    if (ok !== true) return null;
+  }
   const dups = findCompanyDuplicates(name, await db.companies.toArray()).slice(0, 3);
   if (dups.length) {
     const ans = await ui.confirm({
@@ -78,10 +84,14 @@ export interface ConfirmProps {
   source: 'ocr' | 'qr';
   initial: ContactFields;
   flags?: string[];
+  alts?: Partial<Record<keyof ContactFields, string[]>>;
+  companyAlts?: string[];
   presetCompanyId?: string;
   suggestCompany?: string;
   image?: Blob; // foto original de la tarjeta (se guarda optimizada)
   banner?: string;
+  /** La imagen de la tarjeta aún se está preparando: no se puede guardar hasta que esté lista. */
+  imagePending?: boolean;
   /** Texto en bruto (OCR) editable para corregir y reanalizar. */
   raw?: { label: string; text: string; onReparse?: (text: string) => void };
 }
@@ -147,8 +157,8 @@ export function CaptureConfirm(p: ConfirmProps) {
     <div className="stack">
       {p.banner && <div className="banner warn">{p.banner}</div>}
       {imgUrl && <img className="thumb-card" src={imgUrl} alt="Tarjeta capturada" />}
-      <CompanyPicker presetId={p.presetCompanyId} suggestName={p.suggestCompany} value={target} onChange={setTarget} />
-      <div className="card"><ContactFieldsForm value={f} onChange={set} flag={p.flags} /></div>
+      <CompanyPicker presetId={p.presetCompanyId} suggestName={p.suggestCompany} value={target} onChange={setTarget} nameAlts={p.companyAlts} />
+      <div className="card"><ContactFieldsForm value={f} onChange={set} flag={p.flags} alts={p.alts} /></div>
       {p.raw && (
         <details className="card">
           <summary>{p.raw.label}</summary>
@@ -156,7 +166,7 @@ export function CaptureConfirm(p: ConfirmProps) {
           {p.raw.onReparse && <button className="btn sm" onClick={() => p.raw!.onReparse!(rawText)}>Volver a analizar el texto</button>}
         </details>
       )}
-      <button className="btn primary block" disabled={busy} onClick={() => void save()}>Guardar contacto</button>
+      <button className="btn primary block" disabled={busy || p.imagePending} onClick={() => void save()}>{p.imagePending ? 'Preparando imagen…' : 'Guardar contacto'}</button>
     </div>
   );
 }

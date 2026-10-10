@@ -68,10 +68,10 @@ www.surgelatimare.it`;
     expect(f.company).toBeUndefined();
     expect(f.address).toBeUndefined();
   });
-  it('un único teléfono sin etiqueta se propone pero se marca como incierto', () => {
+  it('un móvil sin etiqueta se infiere por el formato (6xx español) pero se marca «revisar»', () => {
     const f = parseCardText('Ana Gil\n+34 600 111 222');
-    expect(f.phone).toBe('+34 600 111 222');
-    expect(f.uncertain).toContain('phone');
+    expect(f.mobile).toBe('+34 600 111 222');
+    expect(f.uncertain).toContain('mobile');
   });
   it('no confunde un email con una web ni una línea de teléfono con un nombre', () => {
     const f = parseCardText('info@empresa.com\nTel +34 911 222 333');
