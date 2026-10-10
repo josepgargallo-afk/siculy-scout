@@ -101,3 +101,8 @@ Modelo de datos listo para un CRM: `companies`, `contacts`, `touchpoints` (prime
 - **Importación .vcf / vCard** (varios contactos por archivo), `Compartir → Siculy Scout` en Android y QR de tarjetas digitales. **Limitación real**: la app no puede leer páginas ajenas (CORS, privacidad) ni hace scraping; si la plataforma ofrece «Guardar contacto / .vcf», se descarga y se importa; si no, queda el escáner de la foto o la entrada manual.
 - **Modelo de datos v2** con migración Dexie automática y compatible con copias v1 (todos los campos nuevos son opcionales). Los ids no cambian.
 - **Transcripción local de audio (experimental, desactivada)** con cola, estados, reintento sin duplicar y copias ZIP compatibles.
+
+## Novedades v0.3.0
+- **Sección única «Notas y audios»** (más reciente primero): la transcripción es el contenido principal; el audio queda plegado («Escuchar audio»); notas largas con «Ver más»; **comentario escrito** aparte de la transcripción literal; editar con «↺ Texto original»; borrar nota+audio o sólo la nota; audios sin transcribir en un grupo plegado.
+- **Transcripción más fiable** (causas y mediciones en [docs/TRANSCRIPCION.md](docs/TRANSCRIPCION.md)): audio completo (antes se truncaba a 30 s), detección de voz (adiós a las frases inventadas sobre silencio), idioma por grabación o **Auto** (es/it/en/fr), **vocabulario propio**, avisos de revisión, y **Small** opcional (241 MB). Sigue experimental hasta validarla en el móvil.
+- Esquema de datos v3 (comentarios y avisos) compatible con copias v1/v2.

@@ -40,7 +40,7 @@ interface Manifest {
   files: FileEntry[];
 }
 
-export const APP_VERSION = '0.2.0';
+export const APP_VERSION = '0.3.0';
 
 // ---------- utilidades ----------
 async function sha256(data: Uint8Array): Promise<string> {
@@ -182,8 +182,12 @@ function sanitizeTranscript(v: unknown): Transcript | undefined {
   if (!isObj(v)) return undefined;
   const st = ['pending', 'processing', 'done', 'error'].includes(String(v.status)) ? (v.status as Transcript['status']) : 'error';
   const t: Transcript = { status: st === 'processing' ? 'pending' : st, updatedAt: isStr(v.updatedAt) ? v.updatedAt : nowIso() };
-  for (const k of ['text', 'language', 'detected', 'model', 'noteId', 'error'] as const) if (isStr(v[k])) t[k] = v[k] as string;
+  for (const k of ['text', 'language', 'detected', 'model', 'noteId', 'error', 'config'] as const) if (isStr(v[k])) t[k] = v[k] as string;
   if (typeof v.attempts === 'number') t.attempts = v.attempts;
+  if (typeof v.speechSeconds === 'number') t.speechSeconds = v.speechSeconds;
+  if (typeof v.suspicious === 'boolean') t.suspicious = v.suspicious;
+  if (typeof v.noVad === 'boolean') t.noVad = v.noVad;
+  if (Array.isArray(v.warnings)) t.warnings = v.warnings.filter(isStr).slice(0, 10);
   return t;
 }
 
@@ -248,6 +252,7 @@ function validateData(raw: unknown): { data: BackupData; problems: string[] } {
       id: o.id as string, companyId: o.companyId, text: o.text,
       ...(o.kind === 'transcript' || o.kind === 'text' ? { kind: o.kind } : {}),
       ...(isStr(o.sourceMediaId) ? { sourceMediaId: o.sourceMediaId } : {}),
+      ...(isStr(o.comment) && o.comment ? { comment: o.comment } : {}),
       createdAt: isStr(o.createdAt) ? o.createdAt : nowIso(),
       updatedAt: isStr(o.updatedAt) ? o.updatedAt : (isStr(o.createdAt) ? o.createdAt : nowIso()),
     });

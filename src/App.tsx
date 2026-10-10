@@ -25,13 +25,15 @@ function Shell() {
   useEffect(() => {
     db.open().catch((e) => setDbError(String(e?.message ?? e)));
     void requestPersistence();
-    void db.open().then(() => resumeTranscriptionOnStart()).catch(() => undefined);
     const u = () => setUpdate(true);
     const o = () => ui.toast('Lista para funcionar sin conexión');
     window.addEventListener('scout:update-ready', u);
     window.addEventListener('scout:offline-ready', o);
     return () => { window.removeEventListener('scout:update-ready', u); window.removeEventListener('scout:offline-ready', o); };
   }, [ui]);
+
+  // Una sola vez por carga de la app: retoma la cola de transcripciones (no debe reejecutarse en cada render).
+  useEffect(() => { void db.open().then(() => resumeTranscriptionOnStart()).catch(() => undefined); }, []);
 
   if (dbError) {
     return (

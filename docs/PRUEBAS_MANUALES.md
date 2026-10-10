@@ -107,3 +107,31 @@ Fecha: ____  Versión (Ajustes): ____  Incidencias: ____________________________
 - [ ] Abrir la app nueva sobre tus datos reales: empresas, contactos, fotos y audios siguen ahí. **Haz una copia ZIP ANTES de actualizar.**
 - [ ] Copia ZIP nueva → restaurar en el ordenador (Reemplazar) → todo presente.
 - [ ] Restaurar en la versión nueva una copia ZIP antigua (si la conservas) → se restaura sin errores.
+
+---
+## 10. Novedades v0.3.0 (críticas)
+
+### 10.1 Notas y audios
+- [ ] Abrir una empresa con audios y notas de la versión anterior: todo aparece en **una sola sección** «Notas y audios», sin duplicados; los audios sin transcribir en el grupo plegado.
+- [ ] Grabar una nota **en español** y otra **en italiano** eligiendo el idioma (ES / IT) o AUTO junto a «Grabar». Anotar tiempo hasta ver el texto: ______ / ______
+- [ ] Al parar la grabación, la tarjeta aparece **arriba** como «Transcribiendo…» y luego con el texto, sin tener que desplazarse.
+- [ ] «Escuchar audio» muestra el reproductor; «Ocultar audio» lo pliega. «Ver más» en una nota larga.
+- [ ] «Añadir comentario» → escribir → cerrar y reabrir la ficha: el comentario sigue, separado de la transcripción.
+- [ ] «Editar» una transcripción, guardar, «↺ Texto original» restaura; «Volver a transcribir» NO pisa la edición ni duplica la nota.
+- [ ] Eliminar: «Sólo la nota» conserva el audio (aparece en «Audios sin transcribir» con «Recuperar nota»).
+
+### 10.2 Precisión (la prueba que decide)
+Usa frases reales de tu trabajo, p. ej.: «Quiero cuarenta cajas de cannoli de dos kilos a doce euros con cincuenta el kilo», «crema di pistacchio di Bronte, barattoli da trecento grammi». Para cada modelo anota: palabras mal, cifras mal, texto inventado.
+- [ ] **Base** (por defecto) español: ______  italiano: ______  tiempo: ______
+- [ ] Probar con y sin «Grabar sin filtros de llamada»: ¿mejora? ______
+- [ ] **Small** (descargar con Wi-Fi, 241 MB): español ______ italiano ______ tiempo ______; ¿la app sigue estable (no se cierra, no se calienta en exceso)? ______
+- [ ] Grabar en silencio 10 s: debe dar «No se detectó voz», nunca texto.
+- [ ] Hablar bajo / lejos del móvil: si dice «No se detectó voz», probar «Forzar sin filtro de voz» (puede inventar: revisar).
+- [ ] Una grabación de **más de 40 s**: el texto debe cubrir todo el audio, no sólo los primeros 30 s.
+- [ ] Los avisos «Contiene cifras» y «Aparecen términos de tu vocabulario» salen donde corresponde.
+- [ ] **Modo avión** con el modelo ya descargado.
+- [ ] Cerrar la app mientras transcribe y reabrir: retoma sin duplicar.
+
+### 10.3 Datos
+- [ ] **Copia ZIP antes de actualizar**; tras actualizar: empresas, fotos, audios, transcripciones y notas intactos.
+- [ ] Copia nueva → restaurar en el ordenador: comentarios y transcripciones presentes.

@@ -10,8 +10,12 @@ export interface Settings {
   ocrLangs: string[];
   /** Transcripción local de audios (Whisper). EXPERIMENTAL: desactivada hasta validarla en el móvil. */
   transcriptionEnabled: boolean;
-  whisperModel: 'tiny' | 'base';
-  whisperInstalled: 'tiny' | 'base' | null;
+  whisperModel: 'tiny' | 'base' | 'small';
+  whisperInstalled: 'tiny' | 'base' | 'small' | null;
+  /** Vocabulario propio (productos, marcas, nombres) que se pasa al modelo para orientar la ortografía. No corrige texto. */
+  transcriptionGlossary: string;
+  /** Grabar sin filtros de llamada del navegador (eco/ruido/ganancia). Experimental: probar en el móvil. */
+  rawMic: boolean;
   transcriptionLang: string;
   event: { originType: OriginType; eventName: string; city: string; country: string };
 }
@@ -24,7 +28,9 @@ export const DEFAULT_SETTINGS: Settings = {
   transcriptionEnabled: false,
   whisperModel: 'base',
   whisperInstalled: null,
-  transcriptionLang: 'es',
+  transcriptionGlossary: 'cannoli, pistacchio di Bronte, arancini, caponata, panettone, cassata, granita, burrata, mozzarella di bufala, gamberi rossi di Mazara del Vallo',
+  rawMic: false,
+  transcriptionLang: 'auto',
   event: { ...DEFAULT_EVENT, eventName: DEFAULT_EVENT.eventName } as Settings['event'],
 };
 

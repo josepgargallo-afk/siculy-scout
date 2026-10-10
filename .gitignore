@@ -17,3 +17,7 @@ ocr-private/
 # Experimentos locales (audio de prueba, resultados)
 experiments/audio/
 public/ort
+
+# Banco ASR: audio generado y resultados
+bench/asr/audio/
+bench/asr/results/

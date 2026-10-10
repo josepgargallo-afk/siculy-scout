@@ -148,3 +148,19 @@ details > summary { cursor: pointer; font-weight: 650; padding: 6px 0; }
 .tstatus { font-size: .85rem; padding: 6px 8px; border-radius: 8px; margin: 4px 0; background: #eef3f7; }
 .tstatus.error { background: #fde8e6; }
 .tstatus.done { background: #e3f4ea; }
+
+.ncard { border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin-top: 8px; background: #fff; display: flex; flex-direction: column; gap: 6px; }
+.ncard.job { background: #f4f8fb; }
+.nhead { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.nhead .small { margin-right: 2px; }
+.ntext { white-space: pre-wrap; word-break: break-word; }
+.ntext.clamp { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.linkbtn { background: none; border: 0; color: var(--navy2); font-weight: 650; padding: 4px 0; text-align: left; cursor: pointer; width: fit-content; }
+.nwarn { background: #fff4d6; border: 1px solid #f0cf73; border-radius: 8px; padding: 6px 8px; font-size: .85rem; }
+.ncomment { background: #eef6ee; border-left: 3px solid var(--ok); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; }
+.ncomment textarea { min-height: 60px; background: #fff; }
+.nactions { gap: 6px; }
+.recbar { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 8px 0; margin: 6px 0; }
+.loose { margin-top: 10px; border: 1px dashed var(--line); border-radius: 10px; padding: 6px 10px; }
+.urow { border-top: 1px solid var(--line); padding: 8px 0; display: flex; flex-direction: column; gap: 6px; }
+.urow:first-of-type { border-top: 0; }

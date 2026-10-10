@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { WHISPER_LANGS } from '../lib/audioPrep';
+import { WHISPER_LANG_CHOICES } from '../lib/audioPrep';
+import { MODEL_INFO, type WhisperModel } from '../lib/whisperModels';
 import { installWhisper, kickTranscription, removeWhisperModel } from '../lib/whisperClient';
 import { pendingCount } from '../lib/transcribe';
 import { formatBytes as fmtB } from '../lib/storage';
@@ -72,22 +73,30 @@ export function SettingsScreen() {
           <h2>Transcripción de audio <span className="chip">experimental</span></h2>
           <div className="small">
             Convierte cada grabación en una nota de texto editable, <b>en el propio móvil</b>, sin coste y sin enviar el audio a ningún sitio.
-            Usa Whisper (modelo abierto). Se descarga <b>una sola vez</b> desde Hugging Face (sólo el modelo, ~{s.whisperModel === 'base' ? '76' : '42'} MB, con Wi-Fi) y después funciona sin conexión.
+            Usa Whisper (modelo abierto). Se descarga <b>una sola vez</b> desde Hugging Face (sólo el modelo, ~{MODEL_INFO[s.whisperModel].mb} MB, con Wi-Fi) y después funciona sin conexión.
           </div>
           <div className="banner warn">No está validada en Android: puede ser lenta (30 s de audio pueden tardar de decenas de segundos a minutos) o gastar batería. El audio siempre se conserva aunque falle. La transcripción es <b>literal y puede contener errores</b>: revísala antes de fiarte de nombres, cifras o precios.</div>
           <Field label="Modelo">
-            <select value={s.whisperModel} disabled={!!wprog} onChange={(e) => saveSettings({ whisperModel: e.target.value as 'tiny' | 'base' })}>
-              <option value="base">Base (76 MB) — más preciso, recomendado</option>
-              <option value="tiny">Tiny (42 MB) — más rápido, menos preciso</option>
+            <select value={s.whisperModel} disabled={!!wprog} onChange={(e) => saveSettings({ whisperModel: e.target.value as WhisperModel })}>
+              {(Object.keys(MODEL_INFO) as WhisperModel[]).map((k) => <option key={k} value={k}>{MODEL_INFO[k].label} ({MODEL_INFO[k].mb} MB) — {MODEL_INFO[k].hint}</option>)}
             </select>
           </Field>
-          <Field label="Idioma de los audios" hint="Siempre se indica el idioma: el modo automático falla (traduce o repite frases).">
+          <Field label="Vocabulario propio" hint="Productos, marcas y nombres separados por comas. Orienta la ortografía del modelo; NO cambia lo que se dice ni corrige textos.">
+            <textarea value={s.transcriptionGlossary} onChange={(e) => saveSettings({ transcriptionGlossary: e.target.value })} placeholder="cannoli, pistacchio di Bronte, arancini, caponata…" style={{ minHeight: 70 }} />
+          </Field>
+          <label className="row"><input type="checkbox" checked={s.rawMic} onChange={(e) => saveSettings({ rawMic: e.target.checked })} /> Grabar sin filtros de llamada del navegador (experimental; prueba si mejora)</label>
+          <Field label="Idioma de los audios" hint="«Auto» detecta sólo entre español, italiano, inglés y francés (no usa el modo libre de Whisper, que traduce o repite). Un idioma equivocado destroza la transcripción: ante la duda, elígelo.">
             <select value={s.transcriptionLang} onChange={(e) => saveSettings({ transcriptionLang: e.target.value })}>
-              {Object.entries(WHISPER_LANGS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {Object.entries(WHISPER_LANG_CHOICES).map(([k, v]) => <option key={k} value={k}>{v === 'Auto' ? 'Auto (detecta entre es/it/en/fr)' : v}</option>)}
             </select>
           </Field>
           {s.whisperInstalled === s.whisperModel ? <div className="saved">✓ Modelo «{s.whisperInstalled}» instalado en este móvil.</div> : (
             <button className="btn" disabled={!online || !!wprog} onClick={async () => {
+              if (s.whisperModel === 'small' && await ui.confirm({
+                title: 'Modelo grande (241 MB)',
+                message: 'Small es mucho más preciso que Base, pero pesa 241 MB, usa más memoria y es más lento (en un móvil, una nota de 30 s puede tardar minutos). Descárgalo sólo con Wi-Fi. Puedes volver a Base en cualquier momento.',
+                confirmLabel: 'Descargar Small',
+              }) !== true) return;
               try {
                 setWprog('Descargando… 0 %');
                 await installWhisper(s.whisperModel, (l, t) => setWprog(t ? `Descargando… ${Math.round((100 * l) / t)} % (${fmtB(l)} de ${fmtB(t)})` : 'Preparando…'));

@@ -3,13 +3,13 @@
 // bloquear la interfaz. Los pesos del modelo se descargan UNA vez de Hugging Face (sólo el modelo, nunca datos del usuario)
 // y quedan en la caché del navegador; el runtime WASM se sirve desde esta misma app (/ort/).
 import { env, pipeline } from '@huggingface/transformers';
-import { WHISPER_LANG_NAME, maxTokensFor } from './audioPrep';
+import { decodeAudio } from './whisperCore';
 
-const MODELS: Record<string, string> = { tiny: 'onnx-community/whisper-tiny', base: 'onnx-community/whisper-base' };
+const MODELS: Record<string, string> = { tiny: 'onnx-community/whisper-tiny', base: 'onnx-community/whisper-base', small: 'onnx-community/whisper-small' };
 
 type Req =
   | { type: 'load'; model: string; ortBase: string }
-  | { type: 'transcribe'; id: number; pcm: Float32Array; language: string };
+  | { type: 'transcribe'; id: number; pcm: Float32Array; language: string; prompt?: string; noVad?: boolean };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let asr: any = null;
@@ -45,11 +45,15 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       (self as unknown as Worker).postMessage({ type: 'loaded', model: m.model });
     } else {
       if (!asr) throw new Error('El modelo no está cargado');
-      const seconds = m.pcm.length / 16000;
-      const lang = WHISPER_LANG_NAME[m.language];
-      if (!lang) throw new Error('Idioma no soportado: ' + m.language); // nunca «auto»: con idioma automático el modelo traduce o entra en bucle
-      const out = (await asr(m.pcm, { language: lang, task: 'transcribe', chunk_length_s: 30, max_new_tokens: maxTokensFor(Math.min(seconds, 30)), return_timestamps: false })) as { text: string };
-      (self as unknown as Worker).postMessage({ type: 'result', id: m.id, text: out.text, model: 'whisper-' + loaded + '-q8' });
+      // Segmentación por voz + normalización + vocabulario opcional (ver whisperCore.ts). Nunca idioma automático ni «translate».
+      const r = await decodeAudio(asr, m.pcm, {
+        language: m.language, prompt: m.prompt, numBeams: 1, normalize: true, vad: !m.noVad,
+        onSegment: (done, total) => (self as unknown as Worker).postMessage({ type: 'segment', id: m.id, done, total }),
+      });
+      (self as unknown as Worker).postMessage({
+        type: 'result', id: m.id, text: r.text, language: r.language, langProb: r.langProb, model: 'whisper-' + loaded + '-q8', speechSeconds: r.speechSeconds, trimmed: r.trimmed,
+        config: `${loaded}-q8 · voraz · ${m.noVad ? 'sin vad' : 'vad'}+norm${m.prompt ? ' · vocabulario' : ''}`,
+      });
     }
   } catch (err) {
     (self as unknown as Worker).postMessage({ type: 'error', id: (m as { id?: number }).id, message: (err as Error).message ?? String(err) });

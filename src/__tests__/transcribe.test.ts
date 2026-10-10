@@ -114,6 +114,43 @@ describe('cola de transcripciones', () => {
     expect(await db.notes.count()).toBe(0);
   });
 
+  it('«Forzar sin filtro de voz»: un audio muy bajo descartado como silencio se puede reintentar y llega al motor con noVad', async () => {
+    const a = await audio(cid);
+    await enqueueTranscription(a.id, 'es');
+    const first = hooks(['x'], () => silence(3));
+    await processQueue(first.h);
+    expect((await db.media.get(a.id))!.transcript!.status).toBe('error');
+    let seen: { noVad?: boolean } | undefined;
+    const engine: Engine = { async transcribe(_p, _l, o) { seen = o; return { text: 'texto muy bajo', model: 'm', speechSeconds: 2 }; } };
+    await enqueueTranscription(a.id, 'es', { noVad: true });
+    await processQueue({ decode: async () => silence(3), engine: async () => engine });
+    expect(seen).toEqual({ noVad: true });
+    expect((await db.media.get(a.id))!.transcript).toMatchObject({ status: 'done', text: 'texto muy bajo', noVad: true });
+    expect(await db.notes.count()).toBe(1);
+  });
+
+  it('avisos de calidad: idioma equivocado y cifras se guardan en la transcripción sin alterar el texto', async () => {
+    const a = await audio(cid);
+    await enqueueTranscription(a.id, 'es');
+    const it = 'Vorrei quaranta casse di cannoli siciliani e un listino della mozzarella di bufala per il mese di novembre';
+    await processQueue(hooks([it]).h);
+    const m = (await db.media.get(a.id))!;
+    expect(m.transcript!.suspicious).toBe(true);
+    expect(m.transcript!.warnings!.join(' ')).toContain('italiano');
+    expect((await db.notes.toArray())[0].text).toBe(it); // el texto literal NO se toca
+  });
+
+  it('idioma «auto»: se guarda el idioma detectado y, con poca seguridad, se avisa', async () => {
+    const a = await audio(cid);
+    await enqueueTranscription(a.id, 'auto');
+    const engine: Engine = { async transcribe() { return { text: 'Vorrei quaranta casse di cannoli siciliani e un listino della mozzarella di bufala per il mese di novembre', model: 'm', speechSeconds: 8, language: 'it', langProb: 0.45 }; } };
+    await processQueue({ decode: async () => tone(2), engine: async () => engine });
+    const t = (await db.media.get(a.id))!.transcript!;
+    expect(t).toMatchObject({ status: 'done', language: 'it', detected: 'it' });
+    expect(t.warnings!.join(' ')).toContain('poca seguridad');
+    expect(t.warnings!.join(' ')).not.toContain('¿Idioma equivocado?'); // el texto SÍ está en el idioma detectado
+  });
+
   it('texto vacío del motor → error (no se crea una nota vacía)', async () => {
     const a = await audio(cid);
     await enqueueTranscription(a.id, 'es');

@@ -37,16 +37,22 @@ export function recordingSupported() {
 }
 
 /** Graba audio con el micrófono. Funciona sin conexión. */
-export async function startRecording(): Promise<ActiveRecorder> {
+export async function startRecording(opts: { raw?: boolean } = {}): Promise<ActiveRecorder> {
   if (!recordingSupported()) throw new RecorderError('Este navegador no permite grabar audio.');
   let stream: MediaStream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    // raw: sin cancelación de eco, supresión de ruido ni control automático de ganancia del navegador. Los filtros de voz
+    // para llamadas pueden deformar el habla y empeorar el reconocimiento; se ofrece como ajuste para probarlo en el móvil.
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: opts.raw ? { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+        : { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+    });
   } catch (e) {
     throw new RecorderError(describeMediaError(e, 'micrófono'));
   }
   const mime = pickMime();
-  const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  // 64 kbps: margen de sobra para voz con Opus (menos artefactos de compresión que a bitrates bajos)
+  const rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), audioBitsPerSecond: 64000 });
   const chunks: Blob[] = [];
   const t0 = Date.now();
   rec.ondataavailable = (ev) => { if (ev.data.size) chunks.push(ev.data); };

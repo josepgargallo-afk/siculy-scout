@@ -6,7 +6,8 @@ import { PRIORITY_LABEL, TYPE_LABEL, type Company, type CompanyType, type Priori
 import { Field, Header, splitList, useUi } from './kit';
 import { navigate } from './router';
 import { useLive, useSettings } from './hooks';
-import { AudioSection, ContactsSection, NotesSection, PhotosSection, VisitsSection, addPhotoFiles } from './sections';
+import { ContactsSection, PhotosSection, VisitsSection, addPhotoFiles } from './sections';
+import { NotesAudioSection } from './NotesAudio';
 
 interface FormState {
   name: string; legalName: string; type: CompanyType; priority: Priority; country: string; city: string;
@@ -135,15 +136,14 @@ export function CompanyView({ id }: { id: string }) {
           <button className="btn" onClick={() => navigate('/scan/card?c=' + id)} disabled={!s.ocrEnabled}><span className="ic">📇</span>Tarjeta</button>
           <button className="btn" onClick={() => navigate('/scan/qr?c=' + id)} disabled={!s.qrEnabled}><span className="ic">▦</span>QR</button>
           <button className="btn" onClick={() => camRef.current?.click()}><span className="ic">📷</span>Foto</button>
-          <button className="btn" onClick={() => { go('sec-audio'); setRec((n) => n + 1); }}><span className="ic">🎙</span>Audio</button>
+          <button className="btn" onClick={() => { go('sec-notes'); setRec((n) => n + 1); }}><span className="ic">🎙</span>Audio</button>
         </div>
         <input ref={camRef} type="file" accept="image/*" capture="environment" hidden
           onChange={async (e) => { const fl = e.target.files ? Array.from(e.target.files) : []; e.target.value = ''; if (fl.length) await addPhotoFiles(id, fl, 'product', ui); }} />
         <CompanyForm key={id} company={company} />
         <ContactsSection companyId={id} />
         <PhotosSection companyId={id} />
-        <AudioSection companyId={id} startSignal={rec} />
-        <NotesSection companyId={id} />
+        <NotesAudioSection companyId={id} startSignal={rec} />
         <VisitsSection companyId={id} />
         <button className="btn danger block" onClick={() => void del()}>Eliminar empresa</button>
       </div>

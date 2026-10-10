@@ -150,6 +150,50 @@ describe('compatibilidad de copias ZIP: v1 → app v2, y v2 → v2', () => {
     expect(await fresh.notes.get(n.id)).toMatchObject({ kind: 'transcript', sourceMediaId: a.id });
     // un «processing» interrumpido vuelve a la cola, no se queda colgado
     expect((await fresh.media.get(m2.id))!.transcript!.status).toBe('pending');
-    expect(SCHEMA_VERSION).toBe(2);
+    expect(SCHEMA_VERSION).toBe(3);
+  });
+
+  /** Copia con el formato EXACTO de la v0.2.0 (schemaVersion 2): transcripción sin avisos y nota sin comentario. */
+  async function v2Zip() {
+    const data = {
+      companies: [{ id: 'c-1', name: 'Alfa Foods', legalName: 'Alfa Foods S.r.l.', email: 'info@alfa.it', type: 'supplier', categories: [], productsOfInterest: [], priority: 'high', createdAt: T, updatedAt: T }],
+      contacts: [], touchpoints: [],
+      notes: [{ id: 'n-1', companyId: 'c-1', text: 'texto transcrito', kind: 'transcript', sourceMediaId: 'm-2', createdAt: T, updatedAt: T }],
+      media: [{ id: 'm-2', companyId: 'c-1', kind: 'audio', mime: 'audio/webm', size: AUDIO.length, durationMs: 3000, file: 'files/media/m-2.webm', transcript: { status: 'done', text: 'texto transcrito', language: 'es', model: 'whisper-base-q8', noteId: 'n-1', updatedAt: T }, createdAt: T, updatedAt: T }],
+    };
+    const dataBytes = strToU8(JSON.stringify(data));
+    const audio = new Uint8Array(AUDIO);
+    const manifest = {
+      format: 'siculy-scout-backup', schemaVersion: 2, appVersion: '0.2.0', exportedAt: T,
+      counts: { companies: 1, contacts: 0, touchpoints: 0, notes: 1, media: 1 }, dataSha256: await sha(dataBytes),
+      files: [{ path: 'files/media/m-2.webm', size: audio.length, sha256: await sha(audio) }],
+    };
+    return new Blob([zipSync({ 'manifest.json': strToU8(JSON.stringify(manifest)), 'data.json': dataBytes, 'files/media/m-2.webm': audio }) as BlobPart]);
+  }
+
+  it('una copia v2 (v0.2.0) se restaura en la app v3 conservando nota, transcripción y audio; los campos nuevos quedan vacíos', async () => {
+    const db = freshDb();
+    await restoreBackup(await parseBackup(await v2Zip()), { mode: 'replace' });
+    const n = (await db.notes.get('n-1'))!;
+    expect(n).toMatchObject({ text: 'texto transcrito', kind: 'transcript', sourceMediaId: 'm-2' });
+    expect(n.comment).toBeUndefined();
+    const m = (await db.media.get('m-2'))!;
+    expect(m.transcript).toMatchObject({ status: 'done', text: 'texto transcrito', noteId: 'n-1' });
+    expect(m.transcript!.warnings).toBeUndefined();
+    expect(await blobToArray(m.blob)).toEqual(AUDIO);
+    expect((await db.companies.get('c-1'))!.email).toBe('info@alfa.it');
+  });
+
+  it('v3: comentario, avisos y configuración de la transcripción viajan en la copia', async () => {
+    const db = freshDb();
+    const c = await createCompany({ name: 'Beta' });
+    const a = await addMedia({ companyId: c.id, kind: 'audio', mime: 'audio/webm', size: 3, durationMs: 1000, blob: bytesBlob([1, 2, 3], 'audio/webm') });
+    const n = await saveNote({ companyId: c.id, text: 'Pedido de 20 cajas', kind: 'transcript', sourceMediaId: a.id, comment: 'Pedir precio EXW' });
+    await db.media.update(a.id, { transcript: { status: 'done', text: 'Pedido de 20 cajas', noteId: n.id, warnings: ['Contiene cifras'], suspicious: false, speechSeconds: 4.2, config: 'base-q8 vad', updatedAt: T } });
+    const { blob } = await exportBackup();
+    const fresh = freshDb();
+    await restoreBackup(await parseBackup(blob), { mode: 'replace' });
+    expect((await fresh.notes.get(n.id))!.comment).toBe('Pedir precio EXW');
+    expect((await fresh.media.get(a.id))!.transcript).toMatchObject({ warnings: ['Contiene cifras'], suspicious: false, speechSeconds: 4.2, config: 'base-q8 vad' });
   });
 });

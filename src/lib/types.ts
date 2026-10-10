@@ -3,7 +3,8 @@
 
 // v2: datos corporativos de empresa (email, teléfono, dirección operativa), transcripciones de audio y notas vinculadas.
 // Todos los campos nuevos son opcionales: los datos y copias v1 siguen siendo válidos sin conversión.
-export const SCHEMA_VERSION = 2;
+// v3: comentario escrito en cada nota (separado de la transcripción literal) y avisos de calidad de la transcripción.
+export const SCHEMA_VERSION = 3;
 
 export type CompanyType = 'supplier' | 'prospect' | 'both';
 export type Priority = 'high' | 'medium' | 'low';
@@ -77,6 +78,15 @@ export interface Transcript {
   noteId?: string; // nota creada a partir de esta transcripción (no se duplica al reintentar)
   error?: string;
   attempts?: number;
+  /** Avisos de revisión (idioma dudoso, frase inventada, cifras…). No cambian el texto. */
+  warnings?: string[];
+  /** true si algún aviso indica que el resultado es sospechoso (no basta con «contiene cifras»). */
+  suspicious?: boolean;
+  speechSeconds?: number;
+  /** Reintento sin filtro de voz (audio muy bajo): más riesgo de frases inventadas. */
+  noVad?: boolean;
+  /** Configuración del motor usada (modelo, haces, vocabulario) para poder comparar. */
+  config?: string;
   updatedAt: string;
 }
 
@@ -103,6 +113,8 @@ export interface NoteItem {
   text: string;
   kind?: 'text' | 'transcript';
   sourceMediaId?: string; // audio del que procede la transcripción
+  /** Observaciones comerciales del usuario, SEPARADAS del texto (que puede ser una transcripción literal). */
+  comment?: string;
   createdAt: string;
   updatedAt: string;
 }
