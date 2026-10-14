@@ -13,6 +13,7 @@ import type { Company } from '../lib/types';
 import { Alts, ContactFieldsForm, toContactPatch, type ContactFields } from './ContactForm';
 import { Field, useUi } from './kit';
 import { navigate } from './router';
+import { requestReveal } from './reveal';
 import { useLive, useObjectUrl } from './hooks';
 
 export type Target = { kind: 'existing'; id: string } | { kind: 'new'; name: string };
@@ -220,6 +221,7 @@ export function CaptureConfirm(p: ConfirmProps) {
             await saveContact({ ...d, ...fill, companyId });
             if (p.image) await attachCard(p.image, companyId, d.id, ui);
             ui.toast('Contacto completado');
+            requestReveal(companyId, 'contacts', d.id);
             (p.onSaved ?? ((id) => navigate('/c/' + id, { replace: true })))(companyId);
             return;
           }
@@ -233,6 +235,7 @@ export function CaptureConfirm(p: ConfirmProps) {
         await saveContact({ id: contactId, companyId, ...patch, fullName: patch.fullName || '(sin nombre)', captureSource: p.source, cardPhotoId: mediaId });
       }
       ui.toast('Contacto guardado');
+      requestReveal(companyId, 'contacts', hasData || mediaId ? contactId : undefined);
       (p.onSaved ?? ((id) => navigate('/c/' + id, { replace: true })))(companyId);
     } catch (e) {
       if (mediaId) await deleteMedia(mediaId).catch(() => undefined);
@@ -285,8 +288,8 @@ export function SaveLinkPanel({ text, url, presetCompanyId, suggestCompany }: { 
       const r = presetCompanyId ? { id: presetCompanyId } : await resolveTarget(target, ui);
       if (!r) return;
       const c = await db.companies.get(r.id);
-      if (url && !digital && c && !c.web) await updateCompany(r.id, { web: url });
-      else await saveNote({ companyId: r.id, text: (digital ? 'Tarjeta digital: ' : url ? 'Enlace QR: ' : 'Texto QR: ') + text });
+      if (url && !digital && c && !c.web) { await updateCompany(r.id, { web: url }); requestReveal(r.id, 'data'); }
+      else { await saveNote({ companyId: r.id, text: (digital ? 'Tarjeta digital: ' : url ? 'Enlace QR: ' : 'Texto QR: ') + text }); requestReveal(r.id, 'notes'); }
       navigate('/c/' + r.id, { replace: true }); ui.toast('Guardado');
     } catch (e) { ui.toast(describeSaveError(e), 'err'); } finally { setBusy(false); }
   };

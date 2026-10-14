@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { db } from '../lib/db';
 import { optimizeImage } from '../lib/image';
 import { addMedia, deleteMedia, deleteTouchpoint, saveTouchpoint, updateMedia } from '../lib/repo';
@@ -13,12 +13,12 @@ import { useLive, useObjectUrl } from './hooks';
 type Ui = ReturnType<typeof useUi>;
 
 /** Optimiza y guarda varias fotos. Si una falla (formato no compatible, sin espacio), el resto continúa. */
-export async function addPhotoFiles(companyId: string, files: FileList | File[], category: PhotoCategory, ui: Ui) {
-  let ok = 0;
+export async function addPhotoFiles(companyId: string, files: FileList | File[], category: PhotoCategory, ui: Ui): Promise<string | undefined> {
+  let ok = 0; let last: string | undefined;
   for (const f of Array.from(files)) {
     try {
       const o = await optimizeImage(f, 'photo');
-      await addMedia({ companyId, kind: 'photo', category, mime: 'image/jpeg', size: o.blob.size, blob: o.blob, thumb: o.thumb });
+      last = (await addMedia({ companyId, kind: 'photo', category, mime: 'image/jpeg', size: o.blob.size, blob: o.blob, thumb: o.thumb })).id;
       ok++;
     } catch (e) {
       const msg = (e as Error).message;
@@ -26,17 +26,34 @@ export async function addPhotoFiles(companyId: string, files: FileList | File[],
     }
   }
   if (ok) ui.toast(ok === 1 ? 'Foto guardada' : `${ok} fotos guardadas`);
+  return last;
 }
 
+/** Desplaza hasta un elemento recién creado y lo resalta un instante. Devuelve true si lo encontró. */
+export function flashElement(elId: string): boolean {
+  const el = document.getElementById(elId);
+  if (!el) return false;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.add('flash'); window.setTimeout(() => el.classList.remove('flash'), 1800);
+  return true;
+}
+
+export interface RevealProp { itemId?: string; n: number }
+
 // ---------- Contactos ----------
-export function ContactsSection({ companyId }: { companyId: string }) {
+export function ContactsSection({ companyId, reveal }: { companyId: string; reveal?: RevealProp }) {
   const [contacts] = useLive(() => db.contacts.where('companyId').equals(companyId).sortBy('createdAt'), [companyId], []);
+  const done = useRef(0);
+  useEffect(() => {
+    if (!reveal || reveal.n === done.current || !contacts.length) return;
+    const target = reveal.itemId && contacts.some((c) => c.id === reveal.itemId) ? reveal.itemId : reveal.itemId ? undefined : contacts[contacts.length - 1].id;
+    if (target && flashElement('ct-' + target)) done.current = reveal.n;
+  }, [reveal, contacts]);
   return (
-    <section className="card" id="sec-contacts">
-      <h2>Contactos <span className="sub">{contacts.length}</span></h2>
+    <div>
       {contacts.length === 0 && <div className="small" style={{ marginBottom: 8 }}>Sin contactos todavía.</div>}
       {contacts.map((c) => (
-        <div key={c.id} className="item" style={{ cursor: 'pointer' }} onClick={() => navigate(`/c/${companyId}/contact/${c.id}`)}>
+        <div key={c.id} id={'ct-' + c.id} className="item" style={{ cursor: 'pointer' }} onClick={() => navigate(`/c/${companyId}/contact/${c.id}`)}>
           <div className="t">{c.fullName || c.email || c.mobile || c.phone}</div>
           <div className="m">
             {c.role && <span>{c.role}</span>}
@@ -52,14 +69,22 @@ export function ContactsSection({ companyId }: { companyId: string }) {
       <div className="row">
         <button className="btn grow" onClick={() => navigate(`/c/${companyId}/contact/new`)}>＋ Añadir contacto</button>
       </div>
-    </section>
+    </div>
   );
 }
 
 // ---------- Fotos ----------
-export function PhotosSection({ companyId }: { companyId: string }) {
+export function PhotosSection({ companyId, reveal }: { companyId: string; reveal?: RevealProp }) {
   const ui = useUi();
-  const [items] = useLive(async () => (await db.media.where('companyId').equals(companyId).filter((m) => m.kind === 'photo').toArray()).sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [companyId], [] as MediaItem[]);
+  const [items] = useLive(async () => (await db.media.where('companyId').equals(companyId).filter((m) => m.kind === 'photo' && m.category !== 'logo').toArray()).sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [companyId], [] as MediaItem[]);
+  const [added, setAdded] = useState<{ id?: string; n: number }>({ n: 0 });
+  const done = useRef(0);
+  const want = reveal && reveal.n >= added.n ? { id: reveal.itemId, n: reveal.n } : added;
+  useEffect(() => {
+    if (!want.n || want.n === done.current || !items.length) return;
+    const id = want.id && items.some((m) => m.id === want.id) ? want.id : want.id ? undefined : items[0].id;
+    if (id && flashElement('ph-' + id)) done.current = want.n;
+  }, [want.n, want.id, items]);
   const [open, setOpen] = useState<string | null>(null);
   const [cat, setCat] = useState<PhotoCategory>('product');
   const camRef = useRef<HTMLInputElement>(null);
@@ -69,15 +94,14 @@ export function PhotosSection({ companyId }: { companyId: string }) {
   const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
     e.target.value = '';
-    if (files.length) await addPhotoFiles(companyId, files, cat, ui);
+    if (files.length) { const id = await addPhotoFiles(companyId, files, cat, ui); if (id) setAdded((a) => ({ id, n: Math.max(a.n, reveal?.n ?? 0) + 1 })); }
   };
 
   return (
-    <section className="card" id="sec-photos">
-      <h2>Fotografías <span className="sub">{items.length}</span></h2>
+    <div>
       <div className="row" style={{ marginBottom: 8 }}>
         <select value={cat} onChange={(e) => setCat(e.target.value as PhotoCategory)} aria-label="Categoría de la foto" style={{ width: 'auto', flex: 1 }}>
-          {(Object.keys(CATEGORY_LABEL) as PhotoCategory[]).filter((c) => c !== 'card').map((c) => <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>)}
+          {(Object.keys(CATEGORY_LABEL) as PhotoCategory[]).filter((c) => c !== 'card' && c !== 'logo').map((c) => <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>)}
         </select>
         <button className="btn primary" onClick={() => camRef.current?.click()}>📷 Cámara</button>
         <button className="btn" onClick={() => galRef.current?.click()}>🖼 Galería</button>
@@ -90,14 +114,14 @@ export function PhotosSection({ companyId }: { companyId: string }) {
         </div>
       )}
       {current && <PhotoViewer m={current} onClose={() => setOpen(null)} />}
-    </section>
+    </div>
   );
 }
 
 function Thumb({ m, onOpen }: { m: MediaItem; onOpen: () => void }) {
   const url = useObjectUrl(m.thumb ?? m.blob);
   return (
-    <button className="ph" onClick={onOpen} aria-label={m.description || CATEGORY_LABEL[m.category ?? 'other']}>
+    <button className="ph" id={'ph-' + m.id} onClick={onOpen} aria-label={m.description || CATEGORY_LABEL[m.category ?? 'other']}>
       {url && <img src={url} alt="" loading="lazy" />}
       <span className="tag">{CATEGORY_LABEL[m.category ?? 'other']}</span>
     </button>
@@ -120,7 +144,7 @@ function PhotoViewer({ m, onClose }: { m: MediaItem; onClose: () => void }) {
         <div className="small">{fmtDate(m.createdAt)} · {formatBytes(m.size)}</div>
         <Field label="Categoría">
           <select defaultValue={m.category ?? 'other'} onChange={(e) => void updateMedia(m.id, { category: e.target.value as PhotoCategory })}>
-            {(Object.keys(CATEGORY_LABEL) as PhotoCategory[]).map((c) => <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>)}
+            {(Object.keys(CATEGORY_LABEL) as PhotoCategory[]).filter((c) => c !== 'logo').map((c) => <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>)}
           </select>
         </Field>
         <Field label="Descripción (opcional)">
@@ -142,8 +166,7 @@ export function VisitsSection({ companyId }: { companyId: string }) {
   const [edit, setEdit] = useState<Partial<Touchpoint> | null>(null);
 
   return (
-    <section className="card" id="sec-visits">
-      <h2>Origen y visitas <span className="sub">{tps.length}</span></h2>
+    <div>
       {tps.map((t, i) => (
         <div key={t.id} className="note">
           <div className="row nowrap"><b className="grow">{i === 0 ? 'Origen: ' : ''}{ORIGIN_LABEL[t.originType]}{t.eventName ? ' · ' + t.eventName : ''}</b>
@@ -163,7 +186,7 @@ export function VisitsSection({ companyId }: { companyId: string }) {
           </div>
         </Modal>
       )}
-    </section>
+    </div>
   );
 }
 

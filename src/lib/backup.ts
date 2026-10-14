@@ -40,7 +40,7 @@ interface Manifest {
   files: FileEntry[];
 }
 
-export const APP_VERSION = '0.3.0';
+export const APP_VERSION = '0.4.0';
 
 // ---------- utilidades ----------
 async function sha256(data: Uint8Array): Promise<string> {
@@ -212,7 +212,7 @@ function validateData(raw: unknown): { data: BackupData; problems: string[] } {
   for (const o of arr('companies')) {
     if (!checkId('companies', o)) continue;
     if (!isStr(o.name) || !o.name.trim()) { problems.push(`Empresa ${o.id} sin nombre`); continue; }
-    const c = pick<Company>(o, ['id', 'name', 'legalName', 'type', 'country', 'city', 'address', 'operationalAddress', 'web', 'email', 'phone', 'notes', 'priority', 'createdAt', 'updatedAt']);
+    const c = pick<Company>(o, ['id', 'name', 'legalName', 'type', 'country', 'city', 'address', 'operationalAddress', 'web', 'email', 'phone', 'notes', 'logoMediaId', 'priority', 'createdAt', 'updatedAt']);
     c.type = ['supplier', 'prospect', 'both'].includes(String(o.type)) ? (o.type as Company['type']) : 'prospect';
     c.priority = ['high', 'medium', 'low'].includes(String(o.priority)) ? (o.priority as Company['priority']) : 'medium';
     c.categories = Array.isArray(o.categories) ? o.categories.filter(isStr) : [];

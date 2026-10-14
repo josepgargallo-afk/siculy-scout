@@ -2,12 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import { db } from '../lib/db';
 import { deleteCompany, updateCompany } from '../lib/repo';
 import { describeSaveError } from '../lib/storage';
-import { PRIORITY_LABEL, TYPE_LABEL, type Company, type CompanyType, type Priority } from '../lib/types';
+import { ORIGIN_LABEL, PRIORITY_LABEL, TYPE_LABEL, type Company, type CompanyType, type Priority } from '../lib/types';
 import { Field, Header, splitList, useUi } from './kit';
 import { navigate } from './router';
 import { useLive, useSettings } from './hooks';
 import { ContactsSection, PhotosSection, VisitsSection, addPhotoFiles } from './sections';
 import { NotesAudioSection } from './NotesAudio';
+import { Acc, summaries } from './Accordion';
+import { Logo, LogoEditor, useLogoBlob } from './Logo';
+import { loadOpen, saveOpen, takeReveal, type SecKey } from './reveal';
 
 interface FormState {
   name: string; legalName: string; type: CompanyType; priority: Priority; country: string; city: string;
@@ -22,7 +25,7 @@ const toForm = (c: Company): FormState => ({
 type SaveState = 'saved' | 'pending' | 'error';
 
 /** Formulario con AUTOGUARDADO: cada cambio se guarda a los 600 ms y siempre al salir o ocultar la app. */
-function CompanyForm({ company }: { company: Company }) {
+function CompanyForm({ company, onState }: { company: Company; onState?: (s: SaveState) => void }) {
   const ui = useUi();
   const [f, setF] = useState<FormState>(() => toForm(company));
   const [state, setState] = useState<SaveState>('saved');
@@ -30,6 +33,7 @@ function CompanyForm({ company }: { company: Company }) {
   const dirty = useRef(false);
   const timer = useRef<number>(undefined);
   const id = company.id;
+  useEffect(() => { onState?.(state); }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const flush = async () => {
     window.clearTimeout(timer.current);
@@ -69,12 +73,7 @@ function CompanyForm({ company }: { company: Company }) {
   );
 
   return (
-    <section className="card stack" id="sec-data">
-      <h2>Datos de la empresa
-        <span className={'saved ' + (state === 'pending' ? 'pending' : '')}>
-          {state === 'saved' ? '✓ Guardado' : state === 'pending' ? 'Guardando…' : '⚠ Sin guardar'}
-        </span>
-      </h2>
+    <div className="stack">
       <Field label="Nombre comercial *"><input type="text" className={f.name.trim() ? '' : 'invalid'} value={f.name} onChange={(e) => set({ name: e.target.value })} /></Field>
       {!f.name.trim() && <div className="banner err">El nombre no puede quedar vacío; no se guardará hasta que lo escribas.</div>}
       {seg(f.type, TYPE_LABEL, (type) => set({ type }))}
@@ -98,7 +97,7 @@ function CompanyForm({ company }: { company: Company }) {
       <Field label="Productos de interés" hint="Separados por comas"><input type="text" value={f.products} onChange={(e) => set({ products: e.target.value })} /></Field>
       <Field label="Notas comerciales"><textarea value={f.notes} onChange={(e) => set({ notes: e.target.value })} /></Field>
       <div className="small">Creada {new Date(company.createdAt).toLocaleString('es-ES')} · Modificada {new Date(company.updatedAt).toLocaleString('es-ES')}</div>
-    </section>
+    </div>
   );
 }
 
@@ -108,6 +107,40 @@ export function CompanyView({ id }: { id: string }) {
   const [company, ready] = useLive(() => db.companies.get(id), [id], undefined as Company | undefined);
   const [rec, setRec] = useState(0);
   const camRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState<SecKey[]>(() => loadOpen(id)); // plegadas por defecto
+  const [reveal, setReveal] = useState<{ sec: SecKey; itemId?: string; n: number } | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>('saved');
+  const [notesSum, setNotesSum] = useState({ total: 0, busy: 0 });
+  const [logoEdit, setLogoEdit] = useState(false);
+  const [counts] = useLive(async () => {
+    const [contacts, photos, tps] = await Promise.all([
+      db.contacts.where('companyId').equals(id).count(),
+      db.media.where('companyId').equals(id).filter((m) => m.kind === 'photo' && m.category !== 'logo').count(),
+      db.touchpoints.where('companyId').equals(id).toArray(),
+    ]);
+    tps.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    const f = tps[0];
+    return { contacts, photos, visits: tps.length, first: f ? (f.eventName || ORIGIN_LABEL[f.originType]) + (f.date ? ' · ' + f.date : '') : undefined };
+  }, [id], { contacts: 0, photos: 0, visits: 0, first: undefined as string | undefined });
+  const logo = useLogoBlob(company ?? {});
+
+  const openSec = (sec: SecKey, itemId?: string) => {
+    setOpen((o) => { const n = o.includes(sec) ? o : [...o, sec]; saveOpen(id, n); return n; });
+    setReveal((r) => ({ sec, itemId, n: (r?.n ?? 0) + 1 }));
+  };
+  const toggle = (sec: SecKey) => setOpen((o) => { const n = o.includes(sec) ? o.filter((k) => k !== sec) : [...o, sec]; saveOpen(id, n); return n; });
+
+  // Al volver de crear algo (contacto, tarjeta, QR…), abre su sección y lo muestra.
+  useEffect(() => {
+    const r = takeReveal(id);
+    if (r) { setOpen(loadOpen(id)); setReveal({ sec: r.sec, itemId: r.itemId, n: 1 }); }
+  }, [id]);
+  // Para secciones sin elemento concreto, deja la cabecera a la vista.
+  useEffect(() => {
+    if (!reveal || reveal.itemId || reveal.sec === 'contacts' || reveal.sec === 'photos') return;
+    const t = window.setTimeout(() => document.getElementById('sec-' + reveal.sec)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+    return () => window.clearTimeout(t);
+  }, [reveal]);
 
   if (!ready) return <><Header title="…" back="/" /></>;
   if (!company) {
@@ -126,27 +159,51 @@ export function CompanyView({ id }: { id: string }) {
     if (ok === true) { await deleteCompany(id); navigate('/', { replace: true }); ui.toast('Empresa eliminada'); }
   };
 
-  const go = (sec: string) => document.getElementById(sec)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const rv = (sec: SecKey) => (reveal && reveal.sec === sec ? { itemId: reveal.itemId, n: reveal.n } : undefined);
+  const isOpen = (k: SecKey) => open.includes(k);
+  const badge = saveState === 'saved' ? null : <span className={'saved ' + (saveState === 'pending' ? 'pending' : '')}>{saveState === 'pending' ? 'Guardando…' : '⚠ Sin guardar'}</span>;
 
   return (
     <>
       <Header title={company.name} back="/" right={<button className="icon-btn" aria-label="Eliminar empresa" onClick={() => void del()}>🗑</button>} />
-      <div className="page">
+      <div className="page ficha">
+        <div className="idrow">
+          <button className="logo-btn" aria-label="Logo de la empresa: cambiar" onClick={() => setLogoEdit(true)}><Logo name={company.name} blob={logo} size={52} /><span className="logo-ed">✎</span></button>
+          <div className="idtxt">
+            <div className="idname">{company.name}</div>
+            <div className="row" style={{ gap: 6 }}>
+              <span className={'chip ' + company.type}>{TYPE_LABEL[company.type]}</span>
+              <span className="chip prio"><span className={'dot ' + company.priority} />Prioridad {PRIORITY_LABEL[company.priority].toLowerCase()}</span>
+            </div>
+          </div>
+        </div>
         <div className="actions4">
           <button className="btn" onClick={() => navigate('/scan/card?c=' + id)} disabled={!s.ocrEnabled}><span className="ic">📇</span>Tarjeta</button>
           <button className="btn" onClick={() => navigate('/scan/qr?c=' + id)} disabled={!s.qrEnabled}><span className="ic">▦</span>QR</button>
           <button className="btn" onClick={() => camRef.current?.click()}><span className="ic">📷</span>Foto</button>
-          <button className="btn" onClick={() => { go('sec-notes'); setRec((n) => n + 1); }}><span className="ic">🎙</span>Audio</button>
+          <button className="btn" onClick={() => { openSec('notes'); setRec((n) => n + 1); }}><span className="ic">🎙</span>Audio</button>
         </div>
         <input ref={camRef} type="file" accept="image/*" capture="environment" hidden
-          onChange={async (e) => { const fl = e.target.files ? Array.from(e.target.files) : []; e.target.value = ''; if (fl.length) await addPhotoFiles(id, fl, 'product', ui); }} />
-        <CompanyForm key={id} company={company} />
-        <ContactsSection companyId={id} />
-        <PhotosSection companyId={id} />
-        <NotesAudioSection companyId={id} startSignal={rec} />
-        <VisitsSection companyId={id} />
-        <button className="btn danger block" onClick={() => void del()}>Eliminar empresa</button>
+          onChange={async (e) => { const fl = e.target.files ? Array.from(e.target.files) : []; e.target.value = ''; if (fl.length) { const pid = await addPhotoFiles(id, fl, 'product', ui); if (pid) openSec('photos', pid); } }} />
+
+        <Acc id="sec-data" icon="🏢" title="Datos de la empresa" summary={summaries.data(company, TYPE_LABEL[company.type])} badge={badge} open={isOpen('data')} onToggle={() => toggle('data')}>
+          <CompanyForm key={id} company={company} onState={setSaveState} />
+        </Acc>
+        <Acc id="sec-contacts" icon="👤" title="Contactos" summary={summaries.contacts(counts.contacts)} open={isOpen('contacts')} onToggle={() => toggle('contacts')}>
+          <ContactsSection companyId={id} reveal={rv('contacts')} />
+        </Acc>
+        <Acc id="sec-photos" icon="📷" title="Fotografías" summary={summaries.photos(counts.photos)} open={isOpen('photos')} onToggle={() => toggle('photos')}>
+          <PhotosSection companyId={id} reveal={rv('photos')} />
+        </Acc>
+        <Acc id="sec-notes" icon="📝" title="Notas y audios" summary={summaries.notes(notesSum.total, notesSum.busy)} open={isOpen('notes')} onToggle={() => toggle('notes')}>
+          <NotesAudioSection companyId={id} startSignal={rec} onSummary={(total, busy) => setNotesSum({ total, busy })} onCreated={() => openSec('notes')} />
+        </Acc>
+        <Acc id="sec-visits" icon="📍" title="Origen y visitas" summary={summaries.visits(counts.first, counts.visits)} open={isOpen('visits')} onToggle={() => toggle('visits')}>
+          <VisitsSection companyId={id} />
+        </Acc>
+        <button className="btn danger block" style={{ marginTop: 6 }} onClick={() => void del()}>Eliminar empresa</button>
       </div>
+      {logoEdit && <LogoEditor company={company} onClose={() => setLogoEdit(false)} />}
     </>
   );
 }

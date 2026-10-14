@@ -6,6 +6,7 @@ import { describeSaveError } from '../lib/storage';
 import { ContactFieldsForm, emptyContact, fromContact, toContactPatch, type ContactFields } from './ContactForm';
 import { Header, useUi } from './kit';
 import { navigate } from './router';
+import { requestReveal } from './reveal';
 import { useDraft, useLive, useObjectUrl, useSettings } from './hooks';
 
 export function ContactEditor({ companyId, contactId }: { companyId: string; contactId: string }) {
@@ -72,7 +73,8 @@ export function ContactEditor({ companyId, contactId }: { companyId: string; con
         if (ans === 'open') { navigate(`/c/${companyId}/contact/${d.id}`, { replace: true }); return; }
         if (ans !== true) return;
       }
-      await saveContact({ ...(isNew ? {} : { id: contactId }), companyId, ...patch });
+      const saved = await saveContact({ ...(isNew ? {} : { id: contactId }), companyId, ...patch });
+      requestReveal(companyId, 'contacts', saved.id);
       discard();
       navigate('/c/' + companyId, { replace: true });
     } catch (e) { ui.toast(describeSaveError(e), 'err'); } finally { setSaving(false); }

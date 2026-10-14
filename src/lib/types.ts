@@ -11,7 +11,7 @@ export type Priority = 'high' | 'medium' | 'low';
 export type OriginType = 'fair' | 'visit' | 'call' | 'web' | 'referral' | 'other';
 export type MediaKind = 'photo' | 'audio';
 export type PhotoCategory =
-  | 'product' | 'stand' | 'catalog' | 'pricelist' | 'packaging' | 'document' | 'card' | 'other';
+  | 'product' | 'stand' | 'catalog' | 'pricelist' | 'packaging' | 'document' | 'card' | 'logo' | 'other';
 
 export interface Company {
   id: string;
@@ -28,6 +28,8 @@ export interface Company {
   categories: string[];
   productsOfInterest: string[];
   notes?: string; // notas comerciales generales
+  /** Logo / imagen principal: id de un archivo (kind 'photo', category 'logo') de esta empresa. Opcional: sin migración. */
+  logoMediaId?: string;
   priority: Priority;
   createdAt: string;
   updatedAt: string;
@@ -128,7 +130,7 @@ export const ORIGIN_LABEL: Record<OriginType, string> = {
 };
 export const CATEGORY_LABEL: Record<PhotoCategory, string> = {
   product: 'Producto', stand: 'Stand', catalog: 'Catálogo', pricelist: 'Tarifa',
-  packaging: 'Envase', document: 'Documentación', card: 'Tarjeta', other: 'Otra',
+  packaging: 'Envase', document: 'Documentación', card: 'Tarjeta', logo: 'Logo', other: 'Otra',
 };
 
 export const DEFAULT_EVENT = {

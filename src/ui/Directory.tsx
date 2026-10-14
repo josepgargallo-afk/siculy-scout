@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { clearAllOpen } from './reveal';
+import { Logo } from './Logo';
 import { db } from '../lib/db';
 import { listCompanies } from '../lib/repo';
 import { getBackupStatus } from '../lib/backup';
@@ -11,9 +13,15 @@ import { useLive } from './hooks';
 const norm = (s?: string) => stripAccents(s ?? '').toLowerCase();
 
 export function Directory() {
+  useEffect(() => { clearAllOpen(); }, []); // al entrar en una empresa desde aquí, la ficha vuelve a estar plegada
   const [rows, ready] = useLive(listCompanies, [], []);
   const [people] = useLive(async () => (await db.contacts.toArray()).map((c) => ({ companyId: c.companyId, text: norm(`${c.fullName} ${c.email ?? ''}`) })), [], []);
   const [status] = useLive(() => getBackupStatus(), [], null);
+  const [logos] = useLive(async () => {
+    const ids = rows.map((r) => r.company.logoMediaId).filter(Boolean) as string[];
+    const ms = await db.media.bulkGet(ids);
+    return new Map(ms.filter(Boolean).map((m) => [m!.id, m!.blob] as const));
+  }, [rows], new Map<string, Blob>());
   const [q, setQ] = useState('');
   const [type, setType] = useState<'' | CompanyType>('');
   const [prio, setPrio] = useState<'' | Priority>('');
@@ -78,7 +86,9 @@ export function Directory() {
         ) : filtered.length === 0 ? (
           <div className="empty">Ninguna empresa coincide con la búsqueda o los filtros.</div>
         ) : filtered.map(({ company: c, contactCount, mediaCount, events: ev }) => (
-          <a key={c.id} className="item" href={'#/c/' + c.id}>
+          <a key={c.id} className="item li" href={'#/c/' + c.id}>
+            <Logo name={c.name} blob={c.logoMediaId ? logos.get(c.logoMediaId) : undefined} size={44} />
+            <div className="li-b">
             <div className="t"><span className={'dot ' + c.priority} title={'Prioridad ' + PRIORITY_LABEL[c.priority]} />{c.name}</div>
             <div className="m">
               <span className={'chip ' + c.type}>{TYPE_LABEL[c.type]}</span>
@@ -86,6 +96,7 @@ export function Directory() {
               <span>👤 {contactCount}</span>
               <span>📷 {mediaCount}</span>
               {ev[0] && <span>{ev[0]}</span>}
+            </div>
             </div>
           </a>
         ))}

@@ -198,7 +198,7 @@ export async function listCompanies(): Promise<CompanyListRow[]> {
   return companies
     .map((company) => ({
       company, contactCount: cc.get(company.id) ?? 0,
-      events: [...(ev.get(company.id) ?? [])], mediaCount: mc.get(company.id) ?? 0,
+      events: [...(ev.get(company.id) ?? [])], mediaCount: Math.max(0, (mc.get(company.id) ?? 0) - (company.logoMediaId ? 1 : 0)), // el logo no cuenta como foto
     }))
     .sort((a, b) => b.company.updatedAt.localeCompare(a.company.updatedAt));
 }

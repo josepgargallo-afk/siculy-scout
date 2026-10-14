@@ -135,3 +135,13 @@ Usa frases reales de tu trabajo, p. ej.: «Quiero cuarenta cajas de cannoli de d
 ### 10.3 Datos
 - [ ] **Copia ZIP antes de actualizar**; tras actualizar: empresas, fotos, audios, transcripciones y notas intactos.
 - [ ] Copia nueva → restaurar en el ordenador: comentarios y transcripciones presentes.
+
+## 11. Novedades v0.4.0 (ficha y logo) — probar en el Samsung
+1. Abrir una empresa desde el directorio: las 5 secciones salen plegadas, con resumen, y caben en una pantalla.
+2. Abrir/cerrar cada sección; abrir varias; volver al directorio y entrar de nuevo → otra vez plegadas.
+3. Botón Foto → se abre Fotografías y se resalta la nueva. Añadir contacto (manual/tarjeta/QR) → vuelve con Contactos abierta y el nuevo resaltado.
+4. Botón Audio → se abre Notas y audios y empieza a grabar; plegar la sección durante la transcripción no la interrumpe.
+5. Escribir en Datos de la empresa, plegar sin esperar → el cambio queda guardado.
+6. Logo: tocar el icono de la cabecera → «Elegir de una foto guardada» → recortar → aparece en ficha y directorio. Pedir otro con logo existente → pide confirmación.
+7. «Buscar logo desde la web» (con web y conexión): puede no ofrecer nada si la web bloquea CORS; la app debe seguir normal. Modo avión: logos ya guardados visibles.
+8. Copia ZIP → restaurar: los logos vuelven.

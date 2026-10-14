@@ -207,7 +207,7 @@ function UntranscribedRow({ media }: { media: MediaItem }) {
   );
 }
 
-export function NotesAudioSection({ companyId, startSignal }: { companyId: string; startSignal: number }) {
+export function NotesAudioSection({ companyId, startSignal, onSummary, onCreated }: { companyId: string; startSignal: number; onSummary?: (total: number, busy: number) => void; onCreated?: () => void }) {
   const ui = useUi();
   const set = useSettings();
   const [notes] = useLive(() => db.notes.where('companyId').equals(companyId).toArray(), [companyId], [] as NoteItem[]);
@@ -255,7 +255,8 @@ export function NotesAudioSection({ companyId, startSignal }: { companyId: strin
         void kickTranscription();
         ui.toast('Audio guardado · transcribiendo…');
       } else { setOpenGroup(true); ui.toast('Audio guardado'); }
-      window.setTimeout(() => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
+      onCreated?.();
+      window.setTimeout(() => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 250);
     } catch (e) { ui.toast(describeSaveError(e), 'err'); }
   };
   useEffect(() => { if (startSignal > 0) void start(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [startSignal]);
@@ -269,11 +270,11 @@ export function NotesAudioSection({ companyId, startSignal }: { companyId: strin
 
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   const total = items.length + loose.length;
+  const busy = items.filter((i) => i.node === 'job').length;
+  useEffect(() => { onSummary?.(total, busy); }, [total, busy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <section className="card" id="sec-notes">
-      <h2>Notas y audios <span className="sub">{total}</span></h2>
-
+    <div>
       <textarea value={d.text} onChange={(e) => setD({ text: e.target.value })} placeholder="Escribe o dicta una nota…" aria-label="Nueva nota" style={{ minHeight: 64 }} />
       <div className="row" style={{ margin: '6px 0' }}>
         <button className="btn primary grow" disabled={!d.text.trim()} onClick={() => void addNote()}>Añadir nota</button>
@@ -305,6 +306,6 @@ export function NotesAudioSection({ companyId, startSignal }: { companyId: strin
           {loose.map((m) => <UntranscribedRow key={m.id} media={m} />)}
         </details>
       )}
-    </section>
+    </div>
   );
 }
