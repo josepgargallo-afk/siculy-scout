@@ -28,8 +28,8 @@ export default defineConfig({
             files: [{ name: 'file', accept: ['text/vcard', 'text/x-vcard', 'text/directory', '.vcf', 'text/plain'] }],
           },
         },
-        background_color: '#0f2a3d',
-        theme_color: '#0f2a3d',
+        background_color: '#102a3a',
+        theme_color: '#f5f2ea',
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -37,7 +37,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,svg,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,png,svg,webmanifest,woff2}'],
         // Los recursos OCR (pesados) NO se precachean: se descargan bajo demanda
         // desde Ajustes ("Preparar OCR sin conexión") y se guardan en la caché 'scout-ocr'.
         globIgnores: ['ocr/**', 'ort/**'],

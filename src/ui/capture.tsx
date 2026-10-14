@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, Building2, CheckCircle2, UserRound } from 'lucide-react';
 import { db } from '../lib/db';
 import { addMedia, createCompany, deleteMedia, saveContact, saveNote, updateCompany } from '../lib/repo';
 import { findCompanyDuplicates, findContactDuplicates } from '../lib/duplicates';
@@ -94,7 +95,7 @@ function CompanyReview({ draft, setDraft, flags, existing, choices, setChoice }:
   existing?: Company; choices: Partial<Record<FieldDiff['key'], boolean>>; setChoice: (k: FieldDiff['key'], v: boolean) => void;
 }) {
   const flag = (k: keyof CompanyDraft) => (flags.includes(k) ? 'uncertain' : '');
-  const mark = (k: keyof CompanyDraft) => (flags.includes(k) ? ' ⚠ revisar' : '');
+  const mark = (k: keyof CompanyDraft) => (flags.includes(k) ? ' · revisar' : '');
   if (!existing) {
     const filled = COMPANY_FIELDS.some((f) => draft[f.key]);
     return (
@@ -118,13 +119,13 @@ function CompanyReview({ draft, setDraft, flags, existing, choices, setChoice }:
   const rest = diffs.filter((d) => d.status !== 'same');
   return (
     <div className="card stack">
-      <h2>Datos de «{existing.name}»</h2>
+      <h2 className="card-title"><span className="ic-tile"><Building2 /></span><span className="grow">Datos de «{existing.name}»</span></h2>
       {rest.length === 0 && <div className="small">{diffs.length ? 'La ficha ya contiene todos los datos detectados.' : 'No se detectaron datos de empresa nuevos.'}</div>}
       {rest.map((d) => {
         const use = choices[d.key] ?? d.status === 'new';
         return (
           <div key={d.key} className={'diff ' + d.status}>
-            <div className="row nowrap"><b className="grow">{d.label}</b><span className={'chip ' + (d.status === 'new' ? 'supplier' : 'both')}>{d.status === 'new' ? 'Nuevo' : '⚠ Conflicto'}</span></div>
+            <div className="row nowrap"><b className="grow">{d.label}</b><span className={'chip ' + (d.status === 'new' ? 'ok' : 'warn')}>{d.status === 'new' ? 'Nuevo' : <><AlertTriangle />Conflicto</>}</span></div>
             {d.status === 'conflict' && (
               <label className="row nowrap"><input type="radio" name={'c-' + d.key} checked={!use} onChange={() => setChoice(d.key, false)} /> <span>Mantener actual: <b>{d.current}</b></span></label>
             )}
@@ -136,7 +137,7 @@ function CompanyReview({ draft, setDraft, flags, existing, choices, setChoice }:
           </div>
         );
       })}
-      {same.length > 0 && <div className="small">✓ Ya coinciden: {same.map((d) => d.label).join(', ')}.</div>}
+      {same.length > 0 && <div className="ninfo"><CheckCircle2 /><span>Ya coinciden: {same.map((d) => d.label).join(', ')}.</span></div>}
       <div className="small">Los datos actuales no se sobrescriben salvo que elijas «Usar detectado».</div>
     </div>
   );
@@ -245,14 +246,14 @@ export function CaptureConfirm(p: ConfirmProps) {
 
   return (
     <div className="stack">
-      {p.banner && <div className="banner warn">{p.banner}</div>}
+      {p.banner && <div className="banner warn"><div className="banner-row"><AlertTriangle /><div className="grow">{p.banner}</div></div></div>}
       {imgUrl && <img className="thumb-card" src={imgUrl} alt="Tarjeta capturada" />}
       <CompanyPicker presetId={p.presetCompanyId} suggestName={p.draft.company.name} value={target} onChange={(t) => { setTarget(t); setChoices({}); }} nameAlts={p.draft.companyAlts.name} />
-      {mismatch && <div className="banner warn">⚠ La tarjeta indica <b>«{cd.name}»</b> pero la empresa seleccionada es <b>«{existing!.name}»</b>. Comprueba que no te equivocas de ficha.</div>}
+      {mismatch && <div className="banner warn"><b>Atención:</b> la tarjeta indica <b>«{cd.name}»</b> pero la empresa seleccionada es <b>«{existing!.name}»</b>. Comprueba que no te equivocas de ficha.</div>}
       {(target.kind === 'new' || existing) && (
         <CompanyReview draft={cd} setDraft={setCompany} flags={p.draft.companyFlags} existing={existingId ? existing : undefined} choices={choices} setChoice={(k, v) => setChoices((c) => ({ ...c, [k]: v }))} />
       )}
-      <div className="card"><h2>Contacto</h2><ContactFieldsForm value={f} onChange={set} flag={p.draft.contactFlags} alts={p.draft.contactAlts} /></div>
+      <div className="card"><h2 className="card-title" style={{ marginBottom: 12 }}><span className="ic-tile"><UserRound /></span>Contacto</h2><ContactFieldsForm value={f} onChange={set} flag={p.draft.contactFlags} alts={p.draft.contactAlts} /></div>
       {p.raw && (
         <details className="card">
           <summary>{p.raw.label}</summary>
@@ -260,7 +261,7 @@ export function CaptureConfirm(p: ConfirmProps) {
           {p.raw.onReparse && <button className="btn sm" onClick={() => p.raw!.onReparse!(rawText)}>Volver a analizar el texto</button>}
         </details>
       )}
-      <button className="btn primary block" disabled={busy || p.imagePending} onClick={() => void save()}>{p.imagePending ? 'Preparando imagen…' : 'Guardar contacto'}</button>
+      <button className="btn primary block lg" disabled={busy || p.imagePending} onClick={() => void save()}>{p.imagePending ? 'Preparando imagen…' : <><CheckCircle2 />Guardar contacto</>}</button>
     </div>
   );
 }

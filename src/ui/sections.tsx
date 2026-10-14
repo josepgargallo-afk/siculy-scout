@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Camera, ExternalLink, Image as ImageIcon, Mail, Pencil, Phone, Plus, Smartphone, Trash2 } from 'lucide-react';
 import { db } from '../lib/db';
 import { optimizeImage } from '../lib/image';
 import { addMedia, deleteMedia, deleteTouchpoint, saveTouchpoint, updateMedia } from '../lib/repo';
@@ -59,15 +60,15 @@ export function ContactsSection({ companyId, reveal }: { companyId: string; reve
             {c.role && <span>{c.role}</span>}
             {c.captureSource !== 'manual' && <span className="chip">{c.captureSource === 'ocr' ? 'Tarjeta' : 'QR'}</span>}
           </div>
-          <div className="row" style={{ marginTop: 6 }} onClick={(e) => e.stopPropagation()}>
-            {c.mobile && <a className="btn sm" href={'tel:' + c.mobile.replace(/[^\d+]/g, '')}>📱 {c.mobile}</a>}
-            {c.phone && <a className="btn sm" href={'tel:' + c.phone.replace(/[^\d+]/g, '')}>📞 {c.phone}</a>}
-            {c.email && <a className="btn sm" href={'mailto:' + c.email}>✉ {c.email}</a>}
+          <div className="contact-acts" onClick={(e) => e.stopPropagation()}>
+            {c.mobile && <a className="btn sm" href={'tel:' + c.mobile.replace(/[^\d+]/g, '')}><Smartphone /><span>{c.mobile}</span></a>}
+            {c.phone && <a className="btn sm" href={'tel:' + c.phone.replace(/[^\d+]/g, '')}><Phone /><span>{c.phone}</span></a>}
+            {c.email && <a className="btn sm" href={'mailto:' + c.email}><Mail /><span>{c.email}</span></a>}
           </div>
         </div>
       ))}
       <div className="row">
-        <button className="btn grow" onClick={() => navigate(`/c/${companyId}/contact/new`)}>＋ Añadir contacto</button>
+        <button className="btn grow" onClick={() => navigate(`/c/${companyId}/contact/new`)}><Plus />Añadir contacto</button>
       </div>
     </div>
   );
@@ -99,12 +100,16 @@ export function PhotosSection({ companyId, reveal }: { companyId: string; reveal
 
   return (
     <div>
-      <div className="row" style={{ marginBottom: 8 }}>
-        <select value={cat} onChange={(e) => setCat(e.target.value as PhotoCategory)} aria-label="Categoría de la foto" style={{ width: 'auto', flex: 1 }}>
-          {(Object.keys(CATEGORY_LABEL) as PhotoCategory[]).filter((c) => c !== 'card' && c !== 'logo').map((c) => <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>)}
-        </select>
-        <button className="btn primary" onClick={() => camRef.current?.click()}>📷 Cámara</button>
-        <button className="btn" onClick={() => galRef.current?.click()}>🖼 Galería</button>
+      <div className="stack" style={{ gap: 8, marginBottom: 12 }}>
+        <Field label="Categoría de las próximas fotos">
+          <select value={cat} onChange={(e) => setCat(e.target.value as PhotoCategory)}>
+            {(Object.keys(CATEGORY_LABEL) as PhotoCategory[]).filter((c) => c !== 'card' && c !== 'logo').map((c) => <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>)}
+          </select>
+        </Field>
+        <div className="grid2">
+          <button className="btn primary" onClick={() => camRef.current?.click()}><Camera />Cámara</button>
+          <button className="btn" onClick={() => galRef.current?.click()}><ImageIcon />Galería</button>
+        </div>
       </div>
       <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={pick} />
       <input ref={galRef} type="file" accept="image/*" multiple hidden onChange={pick} />
@@ -151,8 +156,8 @@ function PhotoViewer({ m, onClose }: { m: MediaItem; onClose: () => void }) {
           <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} onBlur={() => void updateMedia(m.id, { description: desc.trim() || undefined })} placeholder="Ej.: Gambas 1 kg, caja 10 kg" />
         </Field>
         <div className="row">
-          {url && <a className="btn grow" href={url} target="_blank" rel="noopener">Abrir a pantalla completa</a>}
-          <button className="btn danger" onClick={() => void remove()}>Eliminar</button>
+          {url && <a className="btn grow" href={url} target="_blank" rel="noopener"><ExternalLink />Pantalla completa</a>}
+          <button className="btn danger-ghost" onClick={() => void remove()}><Trash2 />Eliminar</button>
         </div>
       </div>
     </Modal>
@@ -170,12 +175,12 @@ export function VisitsSection({ companyId }: { companyId: string }) {
       {tps.map((t, i) => (
         <div key={t.id} className="note">
           <div className="row nowrap"><b className="grow">{i === 0 ? 'Origen: ' : ''}{ORIGIN_LABEL[t.originType]}{t.eventName ? ' · ' + t.eventName : ''}</b>
-            <button className="btn sm" onClick={() => setEdit(t)}>Editar</button></div>
+            <button className="btn sm" onClick={() => setEdit(t)}><Pencil />Editar</button></div>
           <div className="small">{[t.date, t.city, t.country, t.stand && 'Stand ' + t.stand].filter(Boolean).join(' · ')}</div>
           {t.remarks && <div>{t.remarks}</div>}
         </div>
       ))}
-      <button className="btn block" style={{ marginTop: 8 }} onClick={() => setEdit({ originType: 'visit' })}>＋ Registrar nueva visita / contacto</button>
+      <button className="btn block" style={{ marginTop: 8 }} onClick={() => setEdit({ originType: 'visit' })}><Plus />Registrar nueva visita / contacto</button>
       {edit && (
         <Modal title={edit.id ? 'Editar' : 'Nueva visita'} onClose={() => setEdit(null)}>
           <TouchpointForm value={edit} onChange={setEdit} />

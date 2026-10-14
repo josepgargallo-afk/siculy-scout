@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
+import { ChevronDown } from 'lucide-react';
 
 /**
  * Sección plegable. El contenido SIEMPRE queda montado (sólo se oculta): así un formulario con cambios sin guardar,
  * una grabación o una transcripción en curso no se interrumpen al plegar.
  */
 export function Acc({ id, icon, title, summary, badge, open, onToggle, children }: {
-  id: string; icon: string; title: string; summary: ReactNode; badge?: ReactNode; open: boolean; onToggle: () => void; children: ReactNode;
+  id: string; icon: ReactNode; title: string; summary: ReactNode; badge?: ReactNode; open: boolean; onToggle: () => void; children: ReactNode;
 }) {
   return (
     <section className={'acc' + (open ? ' open' : '')} id={id}>
@@ -13,7 +14,7 @@ export function Acc({ id, icon, title, summary, badge, open, onToggle, children 
         <span className="acc-ic" aria-hidden="true">{icon}</span>
         <span className="acc-t"><b>{title}</b><span className="acc-s">{summary}</span></span>
         {badge}
-        <span className="acc-ch" aria-hidden="true">{open ? '▾' : '▸'}</span>
+        <span className="acc-ch" aria-hidden="true"><ChevronDown /></span>
       </button>
       <div className="acc-b" id={id + '-body'} hidden={!open}>{children}</div>
     </section>

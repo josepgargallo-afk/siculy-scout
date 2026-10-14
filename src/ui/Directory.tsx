@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Building2, ChevronRight, Image as ImageIcon, MapPin, Plus, Search, ShieldAlert, User } from 'lucide-react';
 import { clearAllOpen } from './reveal';
 import { Logo } from './Logo';
 import { db } from '../lib/db';
@@ -46,62 +47,84 @@ export function Directory() {
     });
   }, [rows, people, q, type, prio, country, event]);
 
+  const filtering = !!(q.trim() || type || prio || country || event);
   return (
     <>
-      <Header title="Siculy Scout" right={<span className="small" style={{ color: '#cfe0ec', paddingRight: 8 }}>{rows.length} empresas</span>} />
+      <Header
+        title={<span className="brand"><span className="brand-mark" aria-hidden="true">S<i>s</i></span>Siculy Scout</span>}
+        right={ready && rows.length > 0 ? <span className="topbar-count">{rows.length} {rows.length === 1 ? 'empresa' : 'empresas'}</span> : null}
+      />
       <div className="page">
         {status?.shouldWarn && (
           <div className="banner warn">
-            <b>Tienes datos sin copia de seguridad{status.lastBackupAt ? ` (última: hace ${Math.round(status.hoursSince ?? 0)} h)` : ''}.</b>
-            <div><a className="btn sm gold" href="#/backup">Hacer copia ahora</a></div>
+            <div className="banner-row"><ShieldAlert />
+              <div className="grow"><b>Tienes datos sin copia de seguridad{status.lastBackupAt ? ` (última: hace ${Math.round(status.hoursSince ?? 0)} h)` : ''}.</b>
+                <div><a className="btn sm accent" href="#/backup">Hacer copia ahora</a></div></div>
+            </div>
           </div>
         )}
-        <div className="search">
-          <input type="search" placeholder="Buscar empresa, contacto, producto…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
-        </div>
-        <div className="filters">
-          <select value={type} onChange={(e) => setType(e.target.value as '' | CompanyType)} aria-label="Tipo">
-            <option value="">Todos los tipos</option>
-            {(['supplier', 'prospect'] as const).map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
-          </select>
-          <select value={prio} onChange={(e) => setPrio(e.target.value as '' | Priority)} aria-label="Prioridad">
-            <option value="">Toda prioridad</option>
-            {(['high', 'medium', 'low'] as const).map((p) => <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>)}
-          </select>
-          <select value={country} onChange={(e) => setCountry(e.target.value)} aria-label="País">
-            <option value="">Todos los países</option>
-            {countries.map((c) => <option key={c}>{c}</option>)}
-          </select>
-          <select value={event} onChange={(e) => setEvent(e.target.value)} aria-label="Evento">
-            <option value="">Todos los eventos</option>
-            {events.map((c) => <option key={c}>{c}</option>)}
-          </select>
-        </div>
+        {rows.length > 0 && (
+          <>
+            <div className="search">
+              <div className="search-box"><Search />
+                <input type="search" placeholder="Buscar empresa, contacto, producto…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
+              </div>
+            </div>
+            <div className="filters">
+              <select className={type ? 'on' : ''} value={type} onChange={(e) => setType(e.target.value as '' | CompanyType)} aria-label="Tipo">
+                <option value="">Todos los tipos</option>
+                {(['supplier', 'prospect'] as const).map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
+              </select>
+              <select className={prio ? 'on' : ''} value={prio} onChange={(e) => setPrio(e.target.value as '' | Priority)} aria-label="Prioridad">
+                <option value="">Toda prioridad</option>
+                {(['high', 'medium', 'low'] as const).map((p) => <option key={p} value={p}>Prioridad {PRIORITY_LABEL[p].toLowerCase()}</option>)}
+              </select>
+              <select className={country ? 'on' : ''} value={country} onChange={(e) => setCountry(e.target.value)} aria-label="País">
+                <option value="">Todos los países</option>
+                {countries.map((c) => <option key={c}>{c}</option>)}
+              </select>
+              <select className={event ? 'on' : ''} value={event} onChange={(e) => setEvent(e.target.value)} aria-label="Evento">
+                <option value="">Todos los eventos</option>
+                {events.map((c) => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            {filtering && <div className="list-meta">{filtered.length} de {rows.length}</div>}
+          </>
+        )}
 
         {!ready ? null : rows.length === 0 ? (
           <div className="empty">
-            <p><b>Aún no hay empresas.</b></p>
-            <p>Pulsa «Nueva empresa» para crear la primera. Basta con el nombre.</p>
+            <span className="empty-ic"><Building2 /></span>
+            <b>Aún no hay empresas</b>
+            <p>Crea la primera con «Nueva empresa» o escaneando una tarjeta. Basta con el nombre.</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="empty">Ninguna empresa coincide con la búsqueda o los filtros.</div>
+          <div className="empty">
+            <span className="empty-ic"><Search /></span>
+            <b>Sin resultados</b>
+            <p>Ninguna empresa coincide con la búsqueda o los filtros.</p>
+          </div>
         ) : filtered.map(({ company: c, contactCount, mediaCount, events: ev }) => (
           <a key={c.id} className="item li" href={'#/c/' + c.id}>
-            <Logo name={c.name} blob={c.logoMediaId ? logos.get(c.logoMediaId) : undefined} size={44} />
+            <Logo name={c.name} blob={c.logoMediaId ? logos.get(c.logoMediaId) : undefined} size={52} />
             <div className="li-b">
-            <div className="t"><span className={'dot ' + c.priority} title={'Prioridad ' + PRIORITY_LABEL[c.priority]} />{c.name}</div>
-            <div className="m">
-              <span className={'chip ' + c.type}>{TYPE_LABEL[c.type]}</span>
-              {(c.country || c.city) && <span>{[c.city, c.country].filter(Boolean).join(', ')}</span>}
-              <span>👤 {contactCount}</span>
-              <span>📷 {mediaCount}</span>
-              {ev[0] && <span>{ev[0]}</span>}
+              <div className="t">{c.name}</div>
+              <div className="m">
+                <span className={'chip ' + c.type}>{TYPE_LABEL[c.type]}</span>
+                <span className="meta" title={'Prioridad ' + PRIORITY_LABEL[c.priority]}><span className={'dot ' + c.priority} />{PRIORITY_LABEL[c.priority]}</span>
+                {(c.country || c.city) && <span className="meta"><MapPin />{[c.city, c.country].filter(Boolean).join(', ')}</span>}
+              </div>
+              <div className="m">
+                <span className="meta" aria-label={contactCount + ' contactos'}><User />{contactCount}</span>
+                <span className="meta" aria-label={mediaCount + ' archivos'}><ImageIcon />{mediaCount}</span>
+                {ev[0] && <span className="meta">{ev[0]}</span>}
+              </div>
             </div>
-            </div>
+            <span className="li-chev" aria-hidden="true"><ChevronRight /></span>
           </a>
         ))}
       </div>
-      <button className="fab" onClick={() => navigate('/new')}>＋ Nueva empresa</button>
+      <button className="fab" onClick={() => navigate('/new')}><Plus />Nueva empresa</button>
     </>
   );
 }

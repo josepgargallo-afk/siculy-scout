@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { FolderOpen } from 'lucide-react';
 import { draftFromVcard, DIGITAL_CARD_HOSTS } from '../lib/importDraft';
 import { parseVCards, safeHttpUrl, type QrContact } from '../lib/qrParse';
 import { CaptureConfirm } from './capture';
@@ -91,7 +92,7 @@ export function ImportVcf() {
         {!draft && !linkDraft && (
           <>
             <div className="card stack">
-              <button className="btn primary block" style={{ minHeight: 60 }} onClick={() => fileRef.current?.click()}>📂 Elegir archivo .vcf</button>
+              <button className="btn primary block lg" onClick={() => fileRef.current?.click()}><FolderOpen />Elegir archivo .vcf</button>
               <input ref={fileRef} type="file" accept=".vcf,.vcard,text/vcard,text/x-vcard,text/directory,text/plain" multiple hidden onChange={onFiles} />
               <div className="small">
                 Elige el archivo descargado (carpeta <b>Descargas</b>) desde el selector de Android. Admite varios contactos en un mismo archivo.

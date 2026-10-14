@@ -19,12 +19,12 @@ export function ContactFieldsForm({ value, onChange, flag = [], alts = {} }: {
   value: ContactFields; onChange: (p: Partial<ContactFields>) => void; flag?: string[]; alts?: Partial<Record<keyof ContactFields, string[]>>;
 }) {
   const w = (k: keyof ContactFields) => (flag.includes(k) ? 'uncertain' : '');
-  const mark = (k: keyof ContactFields) => (flag.includes(k) ? ' ⚠ revisar' : '');
+  const mark = (k: keyof ContactFields) => (flag.includes(k) ? ' · revisar' : '');
   const A = (k: keyof ContactFields) => <Alts values={alts[k]} current={value[k]} onPick={(v) => onChange({ [k]: v })} />;
   return (
     <div className="stack">
       <div className={w('fullName')}><Field label={'Nombre completo' + mark('fullName')}><input type="text" autoCapitalize="words" value={value.fullName} onChange={(e) => onChange({ fullName: e.target.value })} /></Field>{A('fullName')}</div>
-      <div className="grid2">
+      <div className="stack">
         <div className={w('role')}><Field label={'Cargo' + mark('role')}><input type="text" value={value.role} onChange={(e) => onChange({ role: e.target.value })} /></Field>{A('role')}</div>
         <Field label="Departamento"><input type="text" value={value.department} onChange={(e) => onChange({ department: e.target.value })} /></Field>
       </div>

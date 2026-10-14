@@ -145,3 +145,12 @@ Usa frases reales de tu trabajo, p. ej.: «Quiero cuarenta cajas de cannoli de d
 6. Logo: tocar el icono de la cabecera → «Elegir de una foto guardada» → recortar → aparece en ficha y directorio. Pedir otro con logo existente → pide confirmación.
 7. «Buscar logo desde la web» (con web y conexión): puede no ofrecer nada si la web bloquea CORS; la app debe seguir normal. Modo avión: logos ya guardados visibles.
 8. Copia ZIP → restaurar: los logos vuelven.
+
+## 12. Novedades v0.5.0 (diseño) — probar en el Samsung
+1. Directorio: logos/iniciales visibles, nada cortado, búsqueda y filtros cómodos; «Nueva empresa» no tapa la última fila al desplazarse hasta abajo.
+2. Ficha: nombre y logo arriba; al bajar, el nombre aparece en la barra. Menú ⋮ → «Eliminar empresa…» pide confirmación; «Cancelar» no borra nada.
+3. Notas y audios: grabar, ver el estado «Transcribiendo», leer la transcripción, escribir un comentario.
+4. Tarjeta y QR: revisar campos marcados «revisar» (fondo ámbar) y guardar.
+5. Con el teclado abierto en un formulario largo, el campo activo queda visible.
+6. Barra de estado/gestos de Android: nada queda debajo de la barra inferior ni de la muesca.
+7. Modo avión: la tipografía y los iconos se ven igual.

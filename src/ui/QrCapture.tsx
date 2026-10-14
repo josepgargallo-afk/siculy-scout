@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CheckCircle2, ExternalLink, FileUp, Image as ImageIcon, ScanLine } from 'lucide-react';
 import { decodeQrFromBlob, decodeQrFromImageData } from '../lib/qrDecode';
 import type { QrResult } from '../lib/qrParse';
 import { draftFromVcard, DIGITAL_CARD_HOSTS, type ImportDraft } from '../lib/importDraft';
@@ -106,16 +107,16 @@ export function QrCapture({ companyId }: { companyId?: string }) {
             {busy && <Spinner label="Leyendo imagen…" />}
             {noQr && <div className="banner warn">No se encontró ningún QR en la imagen. Prueba con una foto más cercana y nítida.</div>}
             <div className="small">Apunta al código QR. Funciona sin conexión si el QR contiene los datos directamente (vCard/MECARD).</div>
-            <button className="btn block" onClick={() => fileRef.current?.click()}>🖼 Leer QR desde una imagen</button>
+            <button className="btn block" onClick={() => fileRef.current?.click()}><ImageIcon />Leer QR desde una imagen</button>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={fromImage} />
-            <button className="btn block" onClick={() => navigate('/import' + (companyId ? '?c=' + companyId : ''))}>📥 Importar archivo .vcf (tarjeta digital)</button>
+            <button className="btn block" onClick={() => navigate('/import' + (companyId ? '?c=' + companyId : ''))}><FileUp />Importar archivo .vcf (tarjeta digital)</button>
           </>
         )}
         {result && (
           <>
             <div className="banner ok">
-              {{ vcard: 'Tarjeta de contacto (vCard)', mecard: 'Tarjeta de contacto (MECARD)', url: 'Enlace web', email: 'Email', phone: 'Teléfono', text: 'Texto' }[result.kind]} detectado
-              <button className="btn sm" style={{ marginLeft: 8 }} onClick={restart}>Escanear otro</button>
+              <div className="banner-row"><CheckCircle2 /><b className="grow">{{ vcard: 'Tarjeta de contacto (vCard)', mecard: 'Tarjeta de contacto (MECARD)', url: 'Enlace web', email: 'Email', phone: 'Teléfono', text: 'Texto' }[result.kind]} detectado</b>
+              <button className="btn sm" style={{ margin: 0 }} onClick={restart}><ScanLine />Escanear otro</button></div>
             </div>
             {(result.kind === 'vcard' || result.kind === 'mecard' || result.kind === 'email' || result.kind === 'phone') && (
               draft && <CaptureConfirm key={result.raw} source="qr" draft={draft} presetCompanyId={companyId} />
@@ -125,7 +126,7 @@ export function QrCapture({ companyId }: { companyId?: string }) {
                 <div className="card">
                   <div className="small">{DIGITAL_CARD_HOSTS.test(result.url) ? 'Parece una tarjeta digital' : 'Enlace'} (no se abre automáticamente):</div>
                   <div style={{ wordBreak: 'break-all' }}><b>{result.url}</b></div>
-                  <button className="btn" style={{ marginTop: 8 }} onClick={() => void openLink(result.url!)}>Abrir en el navegador…</button>
+                  <button className="btn" style={{ marginTop: 10 }} onClick={() => void openLink(result.url!)}><ExternalLink />Abrir en el navegador…</button>
                 </div>
                 <div className="card stack">
                   <h2>Importar los datos del contacto</h2>
@@ -134,7 +135,7 @@ export function QrCapture({ companyId }: { companyId?: string }) {
                     Lo habitual es que la página tenga un botón <i>«Guardar contacto»</i>, <i>«Añadir a contactos»</i> o <i>«Descargar vCard»</i>:
                     púlsalo para bajar el archivo <b>.vcf</b> y luego impórtalo aquí. Desde Android también puedes <i>Compartir → Siculy Scout</i>.
                   </div>
-                  <button className="btn primary" onClick={() => navigate('/import' + (companyId ? '?c=' + companyId : ''))}>📥 Importar archivo .vcf</button>
+                  <button className="btn primary" onClick={() => navigate('/import' + (companyId ? '?c=' + companyId : ''))}><FileUp />Importar archivo .vcf</button>
                   <button className="btn" onClick={() => setAsContact(true)}>Crear contacto sólo con este enlace</button>
                 </div>
                 <SaveLinkPanel text={result.url} url={result.url} presetCompanyId={companyId} suggestCompany={hostOf(result.url).replace(/^www\./, '').split('.')[0]} />

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Camera, CheckCircle2, Crop, Image as ImageIcon, Languages, RefreshCw, RotateCcw, RotateCw } from 'lucide-react';
 import { parseCard } from '../lib/ocrParse';
 import { draftFromCard } from '../lib/importDraft';
 import { OCR_LANG_LABEL, decodeRaster, isOcrCached, prepareOcrOffline, rasterToJpeg, scanCardBlob, type CardScan } from '../lib/ocr';
@@ -115,20 +116,20 @@ export function CardCapture({ companyId }: { companyId?: string }) {
       <div className="page stack">
         {step.s === 'pick' && (
           <>
-            <div className="card stack">
-              <button className="btn primary block" style={{ minHeight: 64, fontSize: '1.1rem' }} onClick={() => camRef.current?.click()}>📷 Fotografiar tarjeta</button>
-              <button className="btn block" onClick={() => galRef.current?.click()}>🖼 Elegir una foto de la galería</button>
+            <div className="card stack capture-hero">
+              <button className="btn primary block lg" onClick={() => camRef.current?.click()}><Camera />Fotografiar tarjeta</button>
+              <button className="btn block" onClick={() => galRef.current?.click()}><ImageIcon />Elegir una foto de la galería</button>
               <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
               <input ref={galRef} type="file" accept="image/*" hidden onChange={onFile} />
               <label className="row"><input type="checkbox" checked={skipOcr} onChange={(e) => setSkipOcr(e.target.checked)} /> Sólo guardar la foto (sin OCR)</label>
               <div className="small">Consejo: tarjeta sobre una superficie lisa, bien iluminada, sin reflejos y ocupando buena parte del encuadre. Si sale girada, la app la endereza sola.</div>
             </div>
             <div className="card">
-              <h2>Idiomas del OCR</h2>
-              <div className="row">
+              <h2 className="card-title"><span className="ic-tile"><Languages /></span>Idiomas del OCR</h2>
+              <div className="pills" style={{ marginBottom: 8 }}>
                 {Object.entries(OCR_LANG_LABEL).map(([k, v]) => {
                   const on = set.ocrLangs.includes(k);
-                  return <button key={k} className={'btn sm ' + (on ? 'primary' : '')} onClick={() => {
+                  return <button key={k} className={'pill' + (on ? ' on' : '')} aria-pressed={on} onClick={() => {
                     const next = on ? set.ocrLangs.filter((x) => x !== k) : [...set.ocrLangs, k];
                     if (next.length) saveSettings({ ocrLangs: next });
                   }}>{v}</button>;
@@ -142,7 +143,7 @@ export function CardCapture({ companyId }: { companyId?: string }) {
                   {online && <div><button className="btn sm gold" disabled={!!prep} onClick={() => void prepare()}>{prep ?? 'Descargar OCR para uso sin conexión'}</button></div>}
                 </div>
               )}
-              {cached === true && <div className="saved" style={{ marginTop: 6 }}>✓ OCR disponible sin conexión</div>}
+              {cached === true && <div className="status-line ok" style={{ marginTop: 8 }}><CheckCircle2 />OCR disponible sin conexión</div>}
             </div>
           </>
         )}
@@ -184,11 +185,11 @@ function Result({ work, jpeg, previewUrl, companyId, failed, cropping, onCrop, o
       {previewUrl && !cropping && <img className="preview" src={previewUrl} alt="Tarjeta orientada" />}
       {cropping && previewUrl && <CropTool src={previewUrl} onApply={onApplyCrop} onCancel={onCancelCrop} />}
       {!cropping && (
-        <div className="row">
-          <button className="btn sm" onClick={() => onRotate(270)} aria-label="Girar a la izquierda">⟲ Girar</button>
-          <button className="btn sm" onClick={() => onRotate(90)} aria-label="Girar a la derecha">⟳ Girar</button>
-          <button className="btn sm" disabled={!previewUrl} onClick={onCrop}>✂ Recortar</button>
-          <button className="btn sm" onClick={onRescan}>↻ Repetir</button>
+        <div className="toolbar">
+          <button className="btn sm" onClick={() => onRotate(270)} aria-label="Girar a la izquierda"><RotateCcw /></button>
+          <button className="btn sm" onClick={() => onRotate(90)} aria-label="Girar a la derecha"><RotateCw /></button>
+          <button className="btn sm" disabled={!previewUrl} onClick={onCrop} aria-label="Recortar"><Crop /></button>
+          <button className="btn sm" onClick={onRescan} aria-label="Repetir la lectura"><RefreshCw /></button>
           <button className="btn sm" onClick={onNew}>Otra tarjeta</button>
         </div>
       )}

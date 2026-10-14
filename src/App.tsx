@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Building2, DatabaseBackup, IdCard, QrCode, RefreshCw, Settings } from 'lucide-react';
 import { db } from './lib/db';
 import { requestPersistence } from './lib/storage';
 import { Boundary, UiProvider, useUi } from './ui/kit';
@@ -44,11 +45,12 @@ function Shell() {
     );
   }
 
+  // key = id: cada ficha/contacto se monta de cero; así nunca se muestran (ni se editan) datos de la empresa anterior.
   let screen;
   if (path === '/') screen = <Directory />;
   else if (path === '/new') screen = <NewCompany initialName={query.get('name') ?? ''} />;
-  else if (parts[0] === 'c' && parts[2] === 'contact') screen = <ContactEditor companyId={parts[1]} contactId={parts[3]} />;
-  else if (parts[0] === 'c') screen = <CompanyView id={parts[1]} />;
+  else if (parts[0] === 'c' && parts[2] === 'contact') screen = <ContactEditor key={parts[1] + '/' + parts[3]} companyId={parts[1]} contactId={parts[3]} />;
+  else if (parts[0] === 'c') screen = <CompanyView key={parts[1]} id={parts[1]} />;
   else if (path === '/scan/card') screen = <Boundary name="Escáner de tarjetas"><CardCapture companyId={query.get('c') ?? undefined} /></Boundary>;
   else if (path === '/scan/qr') screen = <Boundary name="Escáner QR"><QrCapture companyId={query.get('c') ?? undefined} /></Boundary>;
   else if (path === '/import') screen = <Boundary name="Importar vCard"><ImportVcf /></Boundary>;
@@ -56,22 +58,22 @@ function Shell() {
   else if (path === '/settings') screen = <SettingsScreen />;
   else screen = <Directory />;
 
-  const nav = (to: string, ic: string, label: string, on: boolean) => <a key={to} href={'#' + to} className={on ? 'on' : ''}><span className="ic">{ic}</span>{label}</a>;
+  const nav = (to: string, ic: ReactNode, label: string, on: boolean) => <a key={to} href={'#' + to} className={on ? 'on' : ''} aria-current={on ? 'page' : undefined}><span className="ic">{ic}</span>{label}</a>;
   return (
     <div className="app">
       {update && (
-        <div className="banner info" style={{ margin: 0, borderRadius: 0 }}>
-          Hay una versión nueva de la app. <button className="btn sm" onClick={() => (window as unknown as { __scoutUpdate?: () => void }).__scoutUpdate?.()}>Actualizar ahora</button>
-          {' '}(termina antes lo que estés capturando)
+        <div className="banner info update-bar">
+          <span className="grow"><b>Hay una versión nueva.</b> Termina antes lo que estés capturando.</span>
+          <button className="btn sm primary" onClick={() => (window as unknown as { __scoutUpdate?: () => void }).__scoutUpdate?.()}><RefreshCw />Actualizar</button>
         </div>
       )}
       <Boundary name="Pantalla">{screen}</Boundary>
       <nav className="bottomnav">
-        {nav('/', '🏢', 'Directorio', path === '/' || parts[0] === 'c' || path === '/new')}
-        {s.qrEnabled && nav('/scan/qr', '▦', 'QR', path === '/scan/qr')}
-        {s.ocrEnabled && nav('/scan/card', '📇', 'Tarjeta', path === '/scan/card')}
-        {nav('/backup', '💾', 'Copias', path === '/backup')}
-        {nav('/settings', '⚙️', 'Ajustes', path === '/settings')}
+        {nav('/', <Building2 />, 'Empresas', path === '/' || parts[0] === 'c' || path === '/new')}
+        {s.qrEnabled && nav('/scan/qr', <QrCode />, 'QR', path === '/scan/qr')}
+        {s.ocrEnabled && nav('/scan/card', <IdCard />, 'Tarjeta', path === '/scan/card')}
+        {nav('/backup', <DatabaseBackup />, 'Copias', path === '/backup')}
+        {nav('/settings', <Settings />, 'Ajustes', path === '/settings')}
       </nav>
     </div>
   );

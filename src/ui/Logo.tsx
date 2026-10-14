@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { ChevronLeft, Globe, ImageIcon, Trash2 } from 'lucide-react';
 import { db } from '../lib/db';
 import { initials, normalizeWeb, removeCompanyLogo, renderLogo, searchWebLogos, setCompanyLogo, type CropRect, type FoundLogo } from '../lib/logo';
 import type { Company, MediaItem } from '../lib/types';
@@ -6,11 +7,14 @@ import { describeSaveError } from '../lib/storage';
 import { Modal, Spinner, useUi } from './kit';
 import { useLive, useObjectUrl } from './hooks';
 
+/** Tono estable (1-5) para el marcador de iniciales: cada empresa conserva su color. */
+const tone = (name: string) => { let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return (h % 5) + 1; };
+
 /** Logo de la empresa o, si no hay, sus iniciales. */
 export function Logo({ name, blob, size = 44 }: { name: string; blob?: Blob; size?: number }) {
   const url = useObjectUrl(blob);
   return (
-    <span className="logo" style={{ width: size, height: size, fontSize: size * 0.4 }} aria-hidden="true">
+    <span className={'logo ' + (url ? 'has-img' : 'c' + tone(name))} style={{ width: size, height: size, fontSize: size * 0.36, borderRadius: Math.round(size * 0.26) }} aria-hidden="true">
       {url ? <img src={url} alt="" /> : initials(name)}
     </span>
   );
@@ -49,12 +53,14 @@ export function LogoEditor({ company, onClose }: { company: Company; onClose: ()
     <Modal title="Logo de la empresa" onClose={onClose}>
       {step === 'menu' && (
         <div className="stack">
-          <div className="row nowrap"><Logo name={company.name} blob={current} size={72} />
+          <div className="row nowrap" style={{ gap: 14 }}><Logo name={company.name} blob={current} size={72} />
             <div className="small">{current ? 'Logo actual. Elige una opción para cambiarlo.' : 'Aún sin logo: se muestran las iniciales.'}</div></div>
-          <button className="btn" onClick={() => setStep('photos')}>🖼 Elegir de una foto guardada</button>
-          <button className="btn" onClick={() => setStep('web')} disabled={!normalizeWeb(company.web ?? '')}>🌐 Buscar logo desde la web</button>
+          <div className="opt-list">
+            <button className="btn" onClick={() => setStep('photos')}><span className="ic-tile"><ImageIcon /></span>Elegir de una foto guardada</button>
+            <button className="btn" onClick={() => setStep('web')} disabled={!normalizeWeb(company.web ?? '')}><span className="ic-tile"><Globe /></span>Buscar logo desde la web</button>
+          </div>
           {!normalizeWeb(company.web ?? '') && <div className="small">Añade la web de la empresa en «Datos de la empresa» para buscar su logo.</div>}
-          {current && <button className="btn danger" onClick={() => void remove()}>Quitar logo</button>}
+          {current && <button className="btn danger-ghost" onClick={() => void remove()}><Trash2 />Quitar logo</button>}
         </div>
       )}
       {step === 'photos' && <PhotoPicker companyId={company.id} onBack={() => setStep('menu')} onPick={(b) => { setSource(b); setStep('crop'); }} />}
@@ -68,7 +74,7 @@ function PhotoPicker({ companyId, onBack, onPick }: { companyId: string; onBack:
   const [items, ready] = useLive(async () => (await db.media.where('companyId').equals(companyId).filter((m) => m.kind === 'photo' && m.category !== 'logo').toArray()).sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [companyId], [] as MediaItem[]);
   return (
     <div className="stack">
-      <button className="btn sm" onClick={onBack}>‹ Volver</button>
+      <button className="btn sm ghost" style={{ alignSelf: 'flex-start' }} onClick={onBack}><ChevronLeft />Volver</button>
       {ready && items.length === 0 && <div className="small">Esta empresa aún no tiene fotos. Haz una (por ejemplo del rótulo o la tarjeta) y vuelve aquí.</div>}
       <div className="photos">{items.map((m) => <PickThumb key={m.id} m={m} onPick={() => onPick(m.blob)} />)}</div>
     </div>
@@ -111,7 +117,7 @@ function Cropper({ src, busy, onBack, onUse }: { src: Blob; busy: boolean; onBac
 
   return (
     <div className="stack">
-      <button className="btn sm" onClick={onBack}>‹ Otra foto</button>
+      <button className="btn sm ghost" style={{ alignSelf: 'flex-start' }} onClick={onBack}><ChevronLeft />Otra foto</button>
       <div className="crop"><div className="crop-in" onPointerDown={(e) => { drag.current = true; e.currentTarget.setPointerCapture(e.pointerId); move(e); }} onPointerMove={move} onPointerUp={() => { drag.current = false; }} onPointerCancel={() => { drag.current = false; }}>
         {url && <img ref={imgRef} src={url} alt="Foto" draggable={false} onLoad={() => setLoaded(true)} />}
         <div className="crop-box" style={{ left: box.x * 100 + '%', top: box.y * 100 + '%', width: box.w * 100 + '%', height: box.h * 100 + '%' }} />
@@ -133,7 +139,7 @@ function WebPicker({ web, busy, onBack, onUse }: { web: string; busy: boolean; o
   }, [web]);
   return (
     <div className="stack">
-      <button className="btn sm" onClick={onBack}>‹ Volver</button>
+      <button className="btn sm ghost" style={{ alignSelf: 'flex-start' }} onClick={onBack}><ChevronLeft />Volver</button>
       {!res && <Spinner label="Buscando en la web de la empresa…" />}
       {res?.offline && <div className="banner warn">Sin conexión. Los logos ya guardados siguen funcionando; vuelve a intentarlo con internet.</div>}
       {res && !res.offline && res.found.length === 0 && (

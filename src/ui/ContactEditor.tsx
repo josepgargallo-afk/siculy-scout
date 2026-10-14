@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Building2, IdCard, QrCode, Trash2 } from 'lucide-react';
 import { db } from '../lib/db';
 import { deleteContact, saveContact } from '../lib/repo';
 import { findContactDuplicates } from '../lib/duplicates';
@@ -90,19 +91,19 @@ export function ContactEditor({ companyId, contactId }: { companyId: string; con
     <>
       <Header title={isNew ? 'Nuevo contacto' : 'Contacto'} back={'/c/' + companyId} />
       <div className="page stack">
-        <div className="small">Empresa: <b>{company?.name ?? '…'}</b></div>
+        <div className="small row" style={{ gap: 6 }}><Building2 style={{ width: 16, height: 16 }} /><span>Empresa: <b>{company?.name ?? '…'}</b></span></div>
         {recovered && <div className="banner info">Se recuperó un borrador sin guardar.</div>}
         {isNew && (s.ocrEnabled || s.qrEnabled) && (
           <div className="grid2">
-            {s.ocrEnabled && <button className="btn" onClick={() => navigate('/scan/card?c=' + companyId)}>📇 Desde tarjeta</button>}
-            {s.qrEnabled && <button className="btn" onClick={() => navigate('/scan/qr?c=' + companyId)}>▦ Desde QR</button>}
+            {s.ocrEnabled && <button className="btn" onClick={() => navigate('/scan/card?c=' + companyId)}><IdCard />Desde tarjeta</button>}
+            {s.qrEnabled && <button className="btn" onClick={() => navigate('/scan/qr?c=' + companyId)}><QrCode />Desde QR</button>}
           </div>
         )}
         {cardUrl && <a href={cardUrl} target="_blank" rel="noopener"><img className="thumb-card" src={cardUrl} alt="Tarjeta de visita" /></a>}
         {existing && <div className="small">Capturado {new Date(existing.capturedAt).toLocaleString('es-ES')} · origen: {existing.captureSource}</div>}
         <div className="card"><ContactFieldsForm value={form} onChange={set} /></div>
         <div className="row">
-          {!isNew && <button className="btn danger" onClick={() => void remove()}>Eliminar</button>}
+          {!isNew && <button className="btn danger-ghost icon" style={{ width: 48 }} aria-label="Eliminar contacto" onClick={() => void remove()}><Trash2 /></button>}
           <span className="grow" />
           <button className="btn" onClick={() => { baseline.current = JSON.stringify(latest.current); discard(); navigate('/c/' + companyId); }}>Cancelar</button>
           <button className="btn primary" disabled={saving} onClick={() => void save()}>Guardar</button>

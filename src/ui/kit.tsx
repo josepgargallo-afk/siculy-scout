@@ -1,5 +1,6 @@
 import { Component, createContext, useCallback, useContext, useEffect, useRef, useState, type ErrorInfo, type ReactNode } from 'react';
 import { goBack } from './router';
+import { AlertTriangle, CheckCircle2, ChevronLeft, MoreVertical, X } from 'lucide-react';
 
 // ---------- Toast + Confirm ----------
 interface ConfirmOpts { title: string; message?: ReactNode; confirmLabel?: string; cancelLabel?: string; danger?: boolean; extra?: { label: string; value: string }[] }
@@ -26,7 +27,7 @@ export function UiProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider value={{ toast, confirm }}>
       {children}
       <div className="toasts" aria-live="polite">
-        {toasts.map((t) => <div key={t.id} className={'toast ' + t.kind}>{t.msg}</div>)}
+        {toasts.map((t) => <div key={t.id} className={'toast ' + t.kind} role={t.kind === 'err' ? 'alert' : 'status'}>{t.kind === 'err' ? <AlertTriangle /> : <CheckCircle2 />}<span>{t.msg}</span></div>)}
       </div>
       {dlg && (
         <div className="overlay" role="dialog" aria-modal="true" onClick={() => close(false)}>
@@ -64,11 +65,11 @@ export class Boundary extends Component<{ children: ReactNode; name: string }, {
 }
 
 // ---------- piezas pequeñas ----------
-export function Header({ title, back, right }: { title: ReactNode; back?: string | true; right?: ReactNode }) {
+export function Header({ title, back, right, hideTitle }: { title: ReactNode; back?: string | true; right?: ReactNode; hideTitle?: boolean }) {
   return (
     <header className="topbar">
-      {back ? <button className="icon-btn" aria-label="Atrás" onClick={() => goBack(typeof back === 'string' ? back : '/')}>‹</button> : <span className="icon-spacer" />}
-      <h1>{title}</h1>
+      {back ? <button className="icon-btn" aria-label="Atrás" onClick={() => goBack(typeof back === 'string' ? back : '/')}><ChevronLeft /></button> : <span className="icon-spacer" />}
+      <h1 className={hideTitle ? 'hide' : ''} aria-hidden={hideTitle || undefined}>{title}</h1>
       <div className="topbar-right">{right}</div>
     </header>
   );
@@ -87,7 +88,7 @@ export function Modal({ children, onClose, title }: { children: ReactNode; onClo
   return (
     <div className="overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="dialog wide" onClick={(e) => e.stopPropagation()}>
-        <div className="dlg-head"><h3>{title}</h3><button className="icon-btn" onClick={onClose} aria-label="Cerrar">✕</button></div>
+        <div className="dlg-head"><h3>{title}</h3><button className="icon-btn" onClick={onClose} aria-label="Cerrar"><X /></button></div>
         {children}
       </div>
     </div>
@@ -106,4 +107,38 @@ export const fmtDate = (iso?: string) => {
 
 export function splitList(s: string): string[] {
   return s.split(/[,;\n]/).map((x) => x.trim()).filter(Boolean);
+}
+
+/** Menú secundario (⋮) para acciones poco frecuentes o destructivas. */
+export function MoreMenu({ items, label = 'Más opciones' }: { items: { label: string; icon?: ReactNode; danger?: boolean; onClick: () => void }[]; label?: string }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    // Un toque fuera lo cierra (la barra superior crea su propio contexto y una capa fija no cubriría toda la pantalla).
+    const out = (e: PointerEvent) => { if (!wrap.current?.contains(e.target as Node)) setOpen(false); };
+    window.addEventListener('keydown', k);
+    document.addEventListener('pointerdown', out, true);
+    return () => { window.removeEventListener('keydown', k); document.removeEventListener('pointerdown', out, true); };
+  }, [open]);
+  return (
+    <div className="menu-wrap" ref={wrap}>
+      <button className="icon-btn" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}><MoreVertical /></button>
+      {open && (
+        <>
+          <div className="menu" role="menu">
+            {items.map((it) => (
+              <button key={it.label} role="menuitem" className={it.danger ? 'danger' : ''} onClick={() => { setOpen(false); it.onClick(); }}>{it.icon}{it.label}</button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Aviso con icono. */
+export function Notice({ kind = 'info', icon, children }: { kind?: 'info' | 'warn' | 'err' | 'ok'; icon?: ReactNode; children: ReactNode }) {
+  return <div className={'banner ' + kind}><div className="banner-row">{icon}<div className="grow">{children}</div></div></div>;
 }

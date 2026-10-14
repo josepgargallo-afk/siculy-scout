@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { FileUp, IdCard, QrCode } from 'lucide-react';
 import { db } from '../lib/db';
 import { createCompany } from '../lib/repo';
 import { findCompanyDuplicates, type CompanyMatch } from '../lib/duplicates';
@@ -90,9 +91,9 @@ export function NewCompany({ initialName = '' }: { initialName?: string }) {
           <div className="card">
             <h2>O créala desde un contacto</h2>
             <div className="grid2">
-              {s.ocrEnabled && <button className="btn" onClick={() => navigate('/scan/card')}>📇 Escanear tarjeta</button>}
-              {s.qrEnabled && <button className="btn" onClick={() => navigate('/scan/qr')}>▦ Escanear QR</button>}
-              <button className="btn" style={{ gridColumn: '1 / -1' }} onClick={() => navigate('/import')}>📥 Importar archivo .vcf</button>
+              {s.ocrEnabled && <button className="btn" onClick={() => navigate('/scan/card')}><IdCard />Escanear tarjeta</button>}
+              {s.qrEnabled && <button className="btn" onClick={() => navigate('/scan/qr')}><QrCode />Escanear QR</button>}
+              <button className="btn" style={{ gridColumn: '1 / -1' }} onClick={() => navigate('/import')}><FileUp />Importar archivo .vcf</button>
             </div>
           </div>
         )}

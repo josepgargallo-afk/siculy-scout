@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle, CheckCircle2, Clock, Info, Mic, MessageSquarePlus, MessageSquareText, Pencil, Play, RefreshCw, RotateCcw, Square, Trash2, Wand2 } from 'lucide-react';
 import { db } from '../lib/db';
 import { addMedia, deleteMedia, deleteNote, saveNote } from '../lib/repo';
 import { recordingSupported, startRecording, type ActiveRecorder } from '../lib/recorder';
@@ -18,9 +19,9 @@ const langTag = (l?: string) => (l ? l.toUpperCase() : '');
 
 function LangChips({ value, onChange, label }: { value: string; onChange: (l: string) => void; label?: string }) {
   return (
-    <div className="row" role="group" aria-label={label ?? 'Idioma'} style={{ gap: 4 }}>
+    <div className="pills" role="group" aria-label={label ?? 'Idioma'}>
       {Object.keys(WHISPER_LANG_CHOICES).map((k) => (
-        <button key={k} type="button" className={'btn sm ' + (value === k ? 'primary' : '')} style={{ minHeight: 32, padding: '0 10px' }} onClick={() => onChange(k)} title={WHISPER_LANG_CHOICES[k]}>{k === 'auto' ? 'AUTO' : k.toUpperCase()}</button>
+        <button key={k} type="button" className={'pill' + (value === k ? ' on' : '')} aria-pressed={value === k} onClick={() => onChange(k)} title={WHISPER_LANG_CHOICES[k]}>{k === 'auto' ? 'Auto' : k.toUpperCase()}</button>
       ))}
     </div>
   );
@@ -35,10 +36,10 @@ function Player({ media }: { media: MediaItem }) {
 function StatusBadge({ media }: { media?: MediaItem }) {
   const t = media?.transcript;
   if (!t) return null;
-  if (t.status === 'pending') return <span className="chip">⏳ En cola</span>;
-  if (t.status === 'processing') return <span className="chip"><span className="spinner" style={{ display: 'inline-block', width: 10, height: 10, borderWidth: 2, verticalAlign: 'middle', marginRight: 4 }} />Transcribiendo</span>;
-  if (t.status === 'error') return <span className="chip" style={{ background: '#fde8e6', color: '#9c2b20' }}>⚠ Error</span>;
-  return t.suspicious ? <span className="chip" style={{ background: '#fff4d6', color: '#8a5a00' }}>⚠ Revisar</span> : <span className="chip supplier">✓ Transcrito</span>;
+  if (t.status === 'pending') return <span className="chip"><Clock />En cola</span>;
+  if (t.status === 'processing') return <span className="chip info"><span className="spinner xs" />Transcribiendo</span>;
+  if (t.status === 'error') return <span className="chip err"><AlertTriangle />Error</span>;
+  return t.suspicious ? <span className="chip warn"><AlertTriangle />Revisar</span> : <span className="chip ok"><CheckCircle2 />Transcrito</span>;
 }
 
 function NoteCard({ note, media }: { note: NoteItem; media?: MediaItem }) {
@@ -100,10 +101,10 @@ function NoteCard({ note, media }: { note: NoteItem; media?: MediaItem }) {
   return (
     <article className="ncard" id={'note-' + note.id}>
       <div className="nhead">
-        <span className="small">{fmtDate(when)}</span>
-        {media && <span className="chip">🎙 {fmtDur(media.durationMs)}</span>}
-        {t?.language && <span className="chip">{langTag(t.language)}</span>}
-        {media ? <StatusBadge media={media} /> : <span className="chip">✎ Nota</span>}
+        <span className="when">{fmtDate(when)}</span>
+        {media && <span className="chip outline"><Mic />{fmtDur(media.durationMs)}</span>}
+        {t?.language && <span className="chip outline">{langTag(t.language)}</span>}
+        {media ? <StatusBadge media={media} /> : <span className="chip"><Pencil />Nota escrita</span>}
       </div>
 
       {editing ? (
@@ -112,7 +113,7 @@ function NoteCard({ note, media }: { note: NoteItem; media?: MediaItem }) {
           <div className="row">
             <button className="btn primary sm" onClick={() => void saveText()}>Guardar</button>
             <button className="btn sm" onClick={() => { setText(note.text); setEditing(false); }}>Cancelar</button>
-            {media?.transcript?.text && media.transcript.text !== text && <button className="btn sm" onClick={() => void restoreOriginal()}>↺ Texto original</button>}
+            {media?.transcript?.text && media.transcript.text !== text && <button className="btn sm" onClick={() => void restoreOriginal()}><RotateCcw />Texto original</button>}
           </div>
         </div>
       ) : (
@@ -122,33 +123,33 @@ function NoteCard({ note, media }: { note: NoteItem; media?: MediaItem }) {
         </>
       )}
 
-      {warns.length > 0 && <div className="nwarn">⚠ Revisa esta transcripción: {warns.join(' ')}</div>}
-      {vocabWarn && <div className="small">ℹ {vocabWarn}</div>}
-      {hasDigits && !warns.length && <div className="small">Contiene cifras: comprueba cantidades, pesos y precios con el audio.</div>}
-      {t?.status === 'error' && <div className="nwarn">⚠ {t.error ?? 'Error de transcripción'} — el audio se conserva.</div>}
-      {media && t?.text && t.text !== note.text && !editing && <div className="small">Editada (el texto original del reconocimiento se conserva).</div>}
+      {warns.length > 0 && <div className="nwarn"><AlertTriangle /><span>Revisa esta transcripción: {warns.join(' ')}</span></div>}
+      {vocabWarn && <div className="ninfo"><Info /><span>{vocabWarn}</span></div>}
+      {hasDigits && !warns.length && <div className="ninfo"><Info /><span>Contiene cifras: comprueba cantidades, pesos y precios con el audio.</span></div>}
+      {t?.status === 'error' && <div className="nwarn err"><AlertTriangle /><span>{t.error ?? 'Error de transcripción'} — el audio se conserva.</span></div>}
+      {media && t?.text && t.text !== note.text && !editing && <div className="ninfo"><Pencil /><span>Editada (el texto original del reconocimiento se conserva).</span></div>}
 
       {showComment && (
         <div className="ncomment">
-          <div className="small"><b>💬 Comentario</b> (tuyo, separado de la transcripción)</div>
+          <div className="clabel"><MessageSquareText />Tu comentario</div>
           <textarea value={comment} placeholder="Observaciones comerciales: precios, condiciones, próximos pasos…" onChange={(e) => setComment(e.target.value)} onBlur={() => void saveComment()} />
         </div>
       )}
 
       <div className="row nactions">
-        {!editing && <button className="btn sm" onClick={() => { setText(note.text); setEditing(true); }}>✏ Editar</button>}
-        {media && <button className="btn sm" onClick={() => setPlayer((v) => !v)}>{player ? '■ Ocultar audio' : '▶ Escuchar audio'}</button>}
-        {!showComment && <button className="btn sm" onClick={() => setCommenting(true)}>💬 Añadir comentario</button>}
-        <button className="btn sm" onClick={() => void remove()} aria-label="Eliminar">🗑</button>
+        {media && <button className="btn sm" aria-expanded={player} onClick={() => setPlayer((v) => !v)}>{player ? <><Square />Ocultar audio</> : <><Play />Escuchar</>}</button>}
+        {!editing && <button className="btn sm" onClick={() => { setText(note.text); setEditing(true); }}><Pencil />Editar</button>}
+        {!showComment && <button className="btn sm" onClick={() => setCommenting(true)}><MessageSquarePlus />Comentar</button>}
+        <button className="btn sm icon trash" onClick={() => void remove()} aria-label="Eliminar nota"><Trash2 /></button>
       </div>
       {media && player && <Player media={media} />}
       {media && (t?.status === 'done' || t?.status === 'error') && (
-        <details className="small">
+        <details className="nmore">
           <summary>Volver a transcribir</summary>
           <div className="row" style={{ marginTop: 6 }}>
             <LangChips value={lang} onChange={setLang} label="Idioma del audio" />
-            <button className="btn sm" onClick={() => void retry()}>↻ Transcribir de nuevo</button>
-            {t?.status === 'error' && <button className="btn sm" onClick={() => void retry(true)}>Forzar sin filtro de voz</button>}
+            <button className="btn sm" onClick={() => void retry()}><RefreshCw />Transcribir de nuevo</button>
+            {t?.status === 'error' && <button className="btn sm" onClick={() => void retry(true)}><Wand2 />Forzar sin filtro de voz</button>}
           </div>
           {t?.status === 'error' && <div className="small">«Forzar» sirve si el audio es muy bajo y se descartó como silencio; puede inventar texto: revisa el resultado.</div>}
           <div className="small">No se duplica la nota; si la editaste, no se pisa.</div>
@@ -164,15 +165,15 @@ function JobCard({ media }: { media: MediaItem }) {
   return (
     <article className="ncard job">
       <div className="nhead">
-        <span className="small">{fmtDate(media.createdAt)}</span>
-        <span className="chip">🎙 {fmtDur(media.durationMs)}</span>
-        {media.transcript?.language && <span className="chip">{langTag(media.transcript.language)}</span>}
+        <span className="when">{fmtDate(media.createdAt)}</span>
+        <span className="chip outline"><Mic />{fmtDur(media.durationMs)}</span>
+        {media.transcript?.language && <span className="chip outline">{langTag(media.transcript.language)}</span>}
         <StatusBadge media={media} />
       </div>
       <div className="small">{media.transcript?.status === 'processing' ? 'Transcribiendo… el audio ya está guardado; el texto aparecerá aquí.' : 'En cola para transcribir.'}
-        {media.transcript?.status === 'pending' && set.whisperInstalled && !set.transcriptionEnabled && <> <button className="btn sm" onClick={() => void kickTranscription({ force: true })}>▶ Transcribir ahora</button></>}
+        {media.transcript?.status === 'pending' && set.whisperInstalled && !set.transcriptionEnabled && <> <button className="btn sm" onClick={() => void kickTranscription({ force: true })}><Play />Transcribir ahora</button></>}
       </div>
-      <div className="row nactions"><button className="btn sm" onClick={() => setPlayer((v) => !v)}>{player ? '■ Ocultar audio' : '▶ Escuchar audio'}</button></div>
+      <div className="row nactions"><button className="btn sm" aria-expanded={player} onClick={() => setPlayer((v) => !v)}>{player ? <><Square />Ocultar audio</> : <><Play />Escuchar</>}</button></div>
       {player && <Player media={media} />}
     </article>
   );
@@ -192,15 +193,15 @@ function UntranscribedRow({ media }: { media: MediaItem }) {
   return (
     <div className="urow">
       <div className="row nowrap">
-        <span className="small grow">{fmtDate(media.createdAt)} · 🎙 {fmtDur(media.durationMs)} · {formatBytes(media.size)}{t?.status === 'error' ? ' · ⚠ ' + (t.error ?? 'error') : ''}</span>
-        <button className="btn sm" onClick={() => setPlayer((v) => !v)}>{player ? '■' : '▶'}</button>
-        <button className="btn sm" aria-label="Eliminar audio" onClick={async () => { if (await ui.confirm({ title: '¿Eliminar audio?', message: 'No se puede deshacer.', confirmLabel: 'Eliminar', danger: true }) === true) await deleteMedia(media.id); }}>🗑</button>
+        <span className="small grow">{fmtDate(media.createdAt)} · {fmtDur(media.durationMs)} · {formatBytes(media.size)}{t?.status === 'error' ? ' · ' + (t.error ?? 'error') : ''}</span>
+        <button className="btn sm icon" aria-label={player ? 'Ocultar audio' : 'Escuchar audio'} onClick={() => setPlayer((v) => !v)}>{player ? <Square /> : <Play />}</button>
+        <button className="btn sm icon" style={{ color: 'var(--danger)' }} aria-label="Eliminar audio" onClick={async () => { if (await ui.confirm({ title: '¿Eliminar audio?', message: 'No se puede deshacer.', confirmLabel: 'Eliminar', danger: true }) === true) await deleteMedia(media.id); }}><Trash2 /></button>
       </div>
       {player && <Player media={media} />}
       <div className="row">
         <LangChips value={lang} onChange={setLang} />
         {t?.text && <button className="btn sm" onClick={() => void restoreNoteFromTranscript(media.id)}>Recuperar nota</button>}
-        <button className="btn sm" onClick={() => void run()}>{t?.status === 'error' ? '↻ Reintentar' : '📝 Transcribir'}</button>
+        <button className="btn sm" onClick={() => void run()}>{t?.status === 'error' ? <><RefreshCw />Reintentar</> : <><Wand2 />Transcribir</>}</button>
         {t?.status === 'error' && /voz/.test(t.error ?? '') && <button className="btn sm" onClick={() => void run(true)}>Forzar sin filtro de voz</button>}
       </div>
     </div>
@@ -275,28 +276,32 @@ export function NotesAudioSection({ companyId, startSignal, onSummary, onCreated
 
   return (
     <div>
-      <textarea value={d.text} onChange={(e) => setD({ text: e.target.value })} placeholder="Escribe o dicta una nota…" aria-label="Nueva nota" style={{ minHeight: 64 }} />
-      <div className="row" style={{ margin: '6px 0' }}>
-        <button className="btn primary grow" disabled={!d.text.trim()} onClick={() => void addNote()}>Añadir nota</button>
-        {set.dictationEnabled && speechSupported() && <button className="btn" onClick={dictate}>{dictating ? '■ Parar' : '🎤'}</button>}
-      </div>
-      {d.text.trim() && <div className="small">Borrador guardado automáticamente.</div>}
-
-      <div className="recbar">
+      <div className={'recbar' + (recording ? ' on' : '')}>
         {!recordingSupported() ? <div className="banner warn" style={{ margin: 0 }}>Este navegador no permite grabar audio.</div> : recording ? (
-          <div className="row"><span className="rec-dot" /><b>Grabando {mmss(secs)}</b><span className="grow" /><button className="btn danger" onClick={() => void stop()}>■ Parar y guardar</button></div>
+          <div className="row nowrap"><span className="rec-dot" /><span className="grow"><span className="rec-time">{mmss(secs)}</span> <span className="small">grabando…</span></span><button className="btn danger" onClick={() => void stop()}><Square />Parar y guardar</button></div>
         ) : (
-          <div className="row">
-            <button className="btn primary" onClick={() => void start()}>🎙 Grabar</button>
-            <span className="small">Idioma:</span>
+          <>
+            <div className="row nowrap">
+              <button className="btn rec" onClick={() => void start()}><Mic />Grabar audio</button>
+              <span className="small grow">Idioma de la grabación</span>
+            </div>
             <LangChips value={lang} onChange={(l) => { setLang(l); saveSettings({ transcriptionLang: l }); }} label="Idioma de la grabación" />
-          </div>
+          </>
         )}
         {!set.whisperInstalled && !recording && <div className="small">La transcripción automática es opcional (Ajustes). Sin ella, el audio se guarda y puedes escribir la nota.</div>}
       </div>
 
+      <div className="composer">
+        <textarea value={d.text} onChange={(e) => setD({ text: e.target.value })} placeholder="Escribe una nota…" aria-label="Nueva nota" />
+        <div className="row nowrap">
+          <button className="btn primary grow" disabled={!d.text.trim()} onClick={() => void addNote()}>Añadir nota</button>
+          {set.dictationEnabled && speechSupported() && <button className="btn" aria-label={dictating ? 'Parar dictado' : 'Dictar'} onClick={dictate}>{dictating ? <><Square />Parar</> : <Mic />}</button>}
+        </div>
+        {d.text.trim() && <div className="small">Borrador guardado automáticamente.</div>}
+      </div>
+
       <div ref={listRef}>
-        {total === 0 && <div className="small" style={{ marginTop: 8 }}>Aún no hay notas ni audios.</div>}
+        {total === 0 && <div className="small" style={{ marginTop: 12 }}>Aún no hay notas ni audios.</div>}
         {items.map((it) => (it.node === 'job' ? <JobCard key={'j' + it.media!.id} media={it.media!} /> : <NoteCard key={it.note!.id} note={it.note!} media={it.media} />))}
       </div>
 

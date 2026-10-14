@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { CheckCircle2, Download, FileSpreadsheet, FolderOpen, HardDrive, Info, RotateCcw, Share2, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { db } from '../lib/db';
 import {
   BackupError, exportAndVerify, getBackupStatus, parseBackup, planRestore, restoreBackup,
@@ -82,41 +83,44 @@ export function BackupScreen() {
       <Header title="Copias de seguridad" />
       <div className="page stack">
         <div className={'banner ' + (recent ? 'ok' : status?.hasData ? 'warn' : 'info')}>
-          {!status?.hasData ? 'Aún no hay datos que copiar.'
+          <div className="banner-row">{recent ? <ShieldCheck /> : status?.hasData ? <ShieldAlert /> : <Info />}<div className="grow">
+          <b>{!status?.hasData ? 'Aún no hay datos que copiar.'
             : recent ? `Todo está copiado (última copia: ${new Date(status!.lastBackupAt!).toLocaleString('es-ES')}).`
             : status?.lastBackupAt ? `Hay cambios posteriores a la última copia (${new Date(status.lastBackupAt).toLocaleString('es-ES')}).`
-            : 'Nunca has hecho una copia. Si pierdes o reseteas el móvil, perderás los datos.'}
-          <div className="small">Ahora: {counts.companies} empresas · {counts.contacts} contactos · {counts.media} fotos/audios · {counts.notes} notas</div>
+            : 'Nunca has hecho una copia. Si pierdes o reseteas el móvil, perderás los datos.'}</b>
+          <div className="small" style={{ marginTop: 2 }}>Ahora: {counts.companies} empresas · {counts.contacts} contactos · {counts.media} fotos/audios · {counts.notes} notas</div>
+          </div></div>
         </div>
 
         <div className="card stack">
-          <h2>Crear copia completa (ZIP)</h2>
+          <h2 className="card-title"><span className="ic-tile"><Download /></span>Crear copia completa (ZIP)</h2>
           <div className="small">Incluye empresas, contactos, notas, fotos, audios y CSV para Excel. Se verifica al terminar: si falta cualquier archivo, no se da por buena.</div>
-          <button className="btn primary block" disabled={!!busy} onClick={() => void doBackup()}>💾 Crear y descargar ZIP</button>
+          <button className="btn primary block" disabled={!!busy} onClick={() => void doBackup()}><Download />Crear y descargar ZIP</button>
           {busy && <Spinner label={busy} />}
           {last && (
             <div className="banner ok">
-              <b>Copia verificada ✓</b> {last.filename} · {formatBytes(last.bytes)}<br />
+              <div className="status-line ok"><CheckCircle2 />Copia verificada</div>
+              {last.filename} · {formatBytes(last.bytes)}<br />
               {last.counts.companies} empresas · {last.counts.contacts} contactos · {last.counts.media} archivos multimedia
               <div className="row" style={{ marginTop: 6 }}>
-                <button className="btn sm" onClick={() => saveBlobAs(last.blob, last.filename)}>Descargar de nuevo</button>
-                <button className="btn sm" onClick={async () => { if (!(await shareFile(last.blob, last.filename, 'application/zip'))) ui.toast('Compartir no disponible: usa Descargar', 'err'); }}>Compartir / enviar</button>
+                <button className="btn sm" onClick={() => saveBlobAs(last.blob, last.filename)}><Download />Descargar de nuevo</button>
+                <button className="btn sm" onClick={async () => { if (!(await shareFile(last.blob, last.filename, 'application/zip'))) ui.toast('Compartir no disponible: usa Descargar', 'err'); }}><Share2 />Compartir / enviar</button>
               </div>
               <div className="small">Guarda el ZIP FUERA del móvil (Drive, PC, correo) para que sea una copia real.</div>
             </div>
           )}
-          <button className="btn block" onClick={() => void doCsv()}>Exportar sólo CSV (Excel)</button>
+          <button className="btn block" onClick={() => void doCsv()}><FileSpreadsheet />Exportar sólo CSV (Excel)</button>
         </div>
 
         <div className="card stack">
-          <h2>Restaurar desde ZIP</h2>
+          <h2 className="card-title"><span className="ic-tile"><RotateCcw /></span>Restaurar desde ZIP</h2>
           <div className="seg" role="group">
             <button className={mode === 'merge' ? 'on' : ''} onClick={() => setMode('merge')}>Fusionar</button>
             <button className={mode === 'replace' ? 'on' : ''} onClick={() => setMode('replace')}>Reemplazar todo</button>
           </div>
           <div className="small">{mode === 'merge' ? 'Añade lo que falta sin duplicar (se identifica por ID) y no pisa tus datos.' : 'Sustituye todo lo de este móvil por el contenido de la copia (útil en un móvil/ordenador nuevo).'}</div>
           {mode === 'merge' && <label className="row"><input type="checkbox" checked={overwrite} onChange={(e) => setOverwrite(e.target.checked)} /> Actualizar empresas existentes si la copia es más reciente</label>}
-          <button className="btn block" disabled={!!busy} onClick={() => fileRef.current?.click()}>📂 Elegir archivo ZIP…</button>
+          <button className="btn block" disabled={!!busy} onClick={() => fileRef.current?.click()}><FolderOpen />Elegir archivo ZIP…</button>
           <input ref={fileRef} type="file" accept=".zip,application/zip" hidden onChange={onPick} />
           {problems && (
             <div className="banner err"><b>{problems.msg}</b>
@@ -127,7 +131,8 @@ export function BackupScreen() {
           )}
           {parsed && (
             <div className="banner ok">
-              <b>Archivo verificado ✓</b> ({parsed.name})<br />
+              <div className="status-line ok"><CheckCircle2 />Archivo verificado</div>
+              <span className="small">{parsed.name}</span><br />
               Contiene {parsed.p.manifest.counts.companies} empresas, {parsed.p.manifest.counts.contacts} contactos, {parsed.p.manifest.counts.media} archivos multimedia, {parsed.p.manifest.counts.notes} notas.<br />
               Creada {new Date(parsed.p.manifest.exportedAt).toLocaleString('es-ES')}. En este móvil ya existen {parsed.plan.existingCompanies} de esas empresas.
               <div><button className={'btn ' + (mode === 'replace' ? 'danger' : 'primary')} onClick={() => void doRestore()}>{mode === 'replace' ? 'Reemplazar…' : 'Fusionar…'}</button></div>
@@ -136,13 +141,13 @@ export function BackupScreen() {
         </div>
 
         <div className="card">
-          <h2>Almacenamiento del móvil</h2>
+          <h2 className="card-title"><span className="ic-tile"><HardDrive /></span>Almacenamiento del móvil</h2>
           <dl className="kv">
             <dt>Usado</dt><dd>{formatBytes(storage?.usage)}</dd>
             <dt>Disponible (aprox.)</dt><dd>{formatBytes(storage?.quota)}</dd>
             <dt>Protegido</dt><dd>{storage?.persisted == null ? '—' : storage.persisted ? 'Sí (el navegador no lo borrará solo)' : 'No: el navegador podría borrarlo si falta espacio. Haz copias.'}</dd>
           </dl>
-          <div className="small">Los datos viven sólo en este navegador. Borrar los datos de Chrome/la app, desinstalar la PWA o resetear el móvil los elimina: la copia ZIP es tu seguridad.</div>
+          <div className="small" style={{ marginTop: 12 }}>Los datos viven sólo en este navegador. Borrar los datos de Chrome/la app, desinstalar la PWA o resetear el móvil los elimina: la copia ZIP es tu seguridad.</div>
         </div>
       </div>
     </>

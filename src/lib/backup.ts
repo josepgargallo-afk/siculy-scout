@@ -40,7 +40,7 @@ interface Manifest {
   files: FileEntry[];
 }
 
-export const APP_VERSION = '0.4.0';
+export const APP_VERSION = '0.5.0';
 
 // ---------- utilidades ----------
 async function sha256(data: Uint8Array): Promise<string> {

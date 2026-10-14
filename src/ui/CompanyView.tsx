@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { Building2, Camera, ExternalLink, IdCard, Image as ImageIcon, MapPin, Mic, NotebookPen, QrCode, Trash2, Users } from 'lucide-react';
 import { db } from '../lib/db';
 import { deleteCompany, updateCompany } from '../lib/repo';
 import { describeSaveError } from '../lib/storage';
 import { ORIGIN_LABEL, PRIORITY_LABEL, TYPE_LABEL, type Company, type CompanyType, type Priority } from '../lib/types';
-import { Field, Header, splitList, useUi } from './kit';
+import { Field, Header, MoreMenu, splitList, useUi } from './kit';
 import { navigate } from './router';
 import { useLive, useSettings } from './hooks';
 import { ContactsSection, PhotosSection, VisitsSection, addPhotoFiles } from './sections';
@@ -21,6 +22,9 @@ const toForm = (c: Company): FormState => ({
   name: c.name, legalName: c.legalName ?? '', type: c.type, priority: c.priority, country: c.country ?? '', city: c.city ?? '',
   address: c.address ?? '', operationalAddress: c.operationalAddress ?? '', email: c.email ?? '', phone: c.phone ?? '', web: c.web ?? '', categories: c.categories.join(', '), products: c.productsOfInterest.join(', '), notes: c.notes ?? '',
 });
+
+/** YYYY-MM-DD → «14 oct 2026» (sin cambiar el dato guardado). */
+const fmtDay = (ymd: string) => { const d = new Date(ymd + 'T12:00:00'); return isNaN(+d) ? ymd : d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }); };
 
 type SaveState = 'saved' | 'pending' | 'error';
 
@@ -91,7 +95,7 @@ function CompanyForm({ company, onState }: { company: Company; onState?: (s: Sav
       </div>
       <Field label="Web">
         <div className="row nowrap"><input type="url" inputMode="url" value={f.web} onChange={(e) => set({ web: e.target.value })} placeholder="www.ejemplo.com" />
-          {f.web.trim() && <a className="btn" href={/^https?:\/\//i.test(f.web.trim()) ? f.web.trim() : 'https://' + f.web.trim()} target="_blank" rel="noopener noreferrer">Abrir</a>}</div>
+          {f.web.trim() && <a className="btn" aria-label="Abrir la web" href={/^https?:\/\//i.test(f.web.trim()) ? f.web.trim() : 'https://' + f.web.trim()} target="_blank" rel="noopener noreferrer"><ExternalLink />Abrir</a>}</div>
       </Field>
       <Field label="Categorías de producto" hint="Separadas por comas"><input type="text" value={f.categories} onChange={(e) => set({ categories: e.target.value })} placeholder="Pescado, Pasta, Helados" /></Field>
       <Field label="Productos de interés" hint="Separados por comas"><input type="text" value={f.products} onChange={(e) => set({ products: e.target.value })} /></Field>
@@ -112,7 +116,9 @@ export function CompanyView({ id }: { id: string }) {
   const [saveState, setSaveState] = useState<SaveState>('saved');
   const [notesSum, setNotesSum] = useState({ total: 0, busy: 0 });
   const [logoEdit, setLogoEdit] = useState(false);
-  const [counts] = useLive(async () => {
+  const idRef = useRef<HTMLDivElement>(null);
+  const [titleOn, setTitleOn] = useState(false);
+  const [counts, countsReady] = useLive(async () => {
     const [contacts, photos, tps] = await Promise.all([
       db.contacts.where('companyId').equals(id).count(),
       db.media.where('companyId').equals(id).filter((m) => m.kind === 'photo' && m.category !== 'logo').count(),
@@ -120,9 +126,17 @@ export function CompanyView({ id }: { id: string }) {
     ]);
     tps.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     const f = tps[0];
-    return { contacts, photos, visits: tps.length, first: f ? (f.eventName || ORIGIN_LABEL[f.originType]) + (f.date ? ' · ' + f.date : '') : undefined };
+    return { contacts, photos, visits: tps.length, first: f ? (f.eventName || ORIGIN_LABEL[f.originType]) + (f.date ? ' · ' + fmtDay(f.date) : '') : undefined };
   }, [id], { contacts: 0, photos: 0, visits: 0, first: undefined as string | undefined });
   const logo = useLogoBlob(company ?? {});
+  // El nombre ya se ve grande en la ficha: la barra superior sólo lo muestra al desplazarse.
+  useEffect(() => {
+    const el = idRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(([e]) => setTitleOn(!e.isIntersecting), { rootMargin: '-56px 0px 0px 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [ready, !!company]);
 
   const openSec = (sec: SecKey, itemId?: string) => {
     setOpen((o) => { const n = o.includes(sec) ? o : [...o, sec]; saveOpen(id, n); return n; });
@@ -161,47 +175,52 @@ export function CompanyView({ id }: { id: string }) {
 
   const rv = (sec: SecKey) => (reveal && reveal.sec === sec ? { itemId: reveal.itemId, n: reveal.n } : undefined);
   const isOpen = (k: SecKey) => open.includes(k);
-  const badge = saveState === 'saved' ? null : <span className={'saved ' + (saveState === 'pending' ? 'pending' : '')}>{saveState === 'pending' ? 'Guardando…' : '⚠ Sin guardar'}</span>;
+  const badge = saveState === 'saved' ? null : <span className={'saved ' + (saveState === 'pending' ? 'pending' : 'err')}>{saveState === 'pending' ? 'Guardando…' : 'Sin guardar'}</span>;
 
   return (
     <>
-      <Header title={company.name} back="/" right={<button className="icon-btn" aria-label="Eliminar empresa" onClick={() => void del()}>🗑</button>} />
+      <Header title={company.name} hideTitle={!titleOn} back="/" right={
+        <MoreMenu label="Más opciones de la empresa" items={[
+          { label: 'Cambiar logo', icon: <ImageIcon />, onClick: () => setLogoEdit(true) },
+          { label: 'Eliminar empresa…', icon: <Trash2 />, danger: true, onClick: () => void del() },
+        ]} />
+      } />
       <div className="page ficha">
-        <div className="idrow">
-          <button className="logo-btn" aria-label="Logo de la empresa: cambiar" onClick={() => setLogoEdit(true)}><Logo name={company.name} blob={logo} size={52} /><span className="logo-ed">✎</span></button>
+        <div className="idrow" ref={idRef}>
+          <button className="logo-btn" aria-label="Cambiar el logo de la empresa" onClick={() => setLogoEdit(true)}><Logo name={company.name} blob={logo} size={68} /><span className="logo-ed"><Camera /></span></button>
           <div className="idtxt">
-            <div className="idname">{company.name}</div>
-            <div className="row" style={{ gap: 6 }}>
+            <h1 className="idname">{company.name}</h1>
+            <div className="idmeta">
               <span className={'chip ' + company.type}>{TYPE_LABEL[company.type]}</span>
               <span className="chip prio"><span className={'dot ' + company.priority} />Prioridad {PRIORITY_LABEL[company.priority].toLowerCase()}</span>
+              {(company.city || company.country) && <span className="place"><MapPin />{[company.city, company.country].filter(Boolean).join(', ')}</span>}
             </div>
           </div>
         </div>
         <div className="actions4">
-          <button className="btn" onClick={() => navigate('/scan/card?c=' + id)} disabled={!s.ocrEnabled}><span className="ic">📇</span>Tarjeta</button>
-          <button className="btn" onClick={() => navigate('/scan/qr?c=' + id)} disabled={!s.qrEnabled}><span className="ic">▦</span>QR</button>
-          <button className="btn" onClick={() => camRef.current?.click()}><span className="ic">📷</span>Foto</button>
-          <button className="btn" onClick={() => { openSec('notes'); setRec((n) => n + 1); }}><span className="ic">🎙</span>Audio</button>
+          <button className="btn" onClick={() => navigate('/scan/card?c=' + id)} disabled={!s.ocrEnabled}><span className="ic"><IdCard /></span>Tarjeta</button>
+          <button className="btn" onClick={() => navigate('/scan/qr?c=' + id)} disabled={!s.qrEnabled}><span className="ic"><QrCode /></span>QR</button>
+          <button className="btn" onClick={() => camRef.current?.click()}><span className="ic"><Camera /></span>Foto</button>
+          <button className="btn rec" onClick={() => { openSec('notes'); setRec((n) => n + 1); }}><span className="ic"><Mic /></span>Audio</button>
         </div>
         <input ref={camRef} type="file" accept="image/*" capture="environment" hidden
           onChange={async (e) => { const fl = e.target.files ? Array.from(e.target.files) : []; e.target.value = ''; if (fl.length) { const pid = await addPhotoFiles(id, fl, 'product', ui); if (pid) openSec('photos', pid); } }} />
 
-        <Acc id="sec-data" icon="🏢" title="Datos de la empresa" summary={summaries.data(company, TYPE_LABEL[company.type])} badge={badge} open={isOpen('data')} onToggle={() => toggle('data')}>
+        <Acc id="sec-data" icon={<Building2 />} title="Datos de la empresa" summary={summaries.data(company, TYPE_LABEL[company.type])} badge={badge} open={isOpen('data')} onToggle={() => toggle('data')}>
           <CompanyForm key={id} company={company} onState={setSaveState} />
         </Acc>
-        <Acc id="sec-contacts" icon="👤" title="Contactos" summary={summaries.contacts(counts.contacts)} open={isOpen('contacts')} onToggle={() => toggle('contacts')}>
+        <Acc id="sec-contacts" icon={<Users />} title="Contactos" summary={countsReady ? summaries.contacts(counts.contacts) : '…'} open={isOpen('contacts')} onToggle={() => toggle('contacts')}>
           <ContactsSection companyId={id} reveal={rv('contacts')} />
         </Acc>
-        <Acc id="sec-photos" icon="📷" title="Fotografías" summary={summaries.photos(counts.photos)} open={isOpen('photos')} onToggle={() => toggle('photos')}>
+        <Acc id="sec-photos" icon={<ImageIcon />} title="Fotografías" summary={countsReady ? summaries.photos(counts.photos) : '…'} open={isOpen('photos')} onToggle={() => toggle('photos')}>
           <PhotosSection companyId={id} reveal={rv('photos')} />
         </Acc>
-        <Acc id="sec-notes" icon="📝" title="Notas y audios" summary={summaries.notes(notesSum.total, notesSum.busy)} open={isOpen('notes')} onToggle={() => toggle('notes')}>
+        <Acc id="sec-notes" icon={<NotebookPen />} title="Notas y audios" summary={summaries.notes(notesSum.total, notesSum.busy)} open={isOpen('notes')} onToggle={() => toggle('notes')}>
           <NotesAudioSection companyId={id} startSignal={rec} onSummary={(total, busy) => setNotesSum({ total, busy })} onCreated={() => openSec('notes')} />
         </Acc>
-        <Acc id="sec-visits" icon="📍" title="Origen y visitas" summary={summaries.visits(counts.first, counts.visits)} open={isOpen('visits')} onToggle={() => toggle('visits')}>
+        <Acc id="sec-visits" icon={<MapPin />} title="Origen y visitas" summary={countsReady ? summaries.visits(counts.first, counts.visits) : '…'} open={isOpen('visits')} onToggle={() => toggle('visits')}>
           <VisitsSection companyId={id} />
         </Acc>
-        <button className="btn danger block" style={{ marginTop: 6 }} onClick={() => void del()}>Eliminar empresa</button>
       </div>
       {logoEdit && <LogoEditor company={company} onClose={() => setLogoEdit(false)} />}
     </>
