@@ -4,7 +4,7 @@
 // v2: datos corporativos de empresa (email, teléfono, dirección operativa), transcripciones de audio y notas vinculadas.
 // Todos los campos nuevos son opcionales: los datos y copias v1 siguen siendo válidos sin conversión.
 // v3: comentario escrito en cada nota (separado de la transcripción literal) y avisos de calidad de la transcripción.
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export type CompanyType = 'supplier' | 'prospect' | 'both';
 export type Priority = 'high' | 'medium' | 'low';
@@ -12,6 +12,15 @@ export type OriginType = 'fair' | 'visit' | 'call' | 'web' | 'referral' | 'other
 export type MediaKind = 'photo' | 'audio';
 export type PhotoCategory =
   | 'product' | 'stand' | 'catalog' | 'pricelist' | 'packaging' | 'document' | 'card' | 'logo' | 'other';
+
+/** De dónde salió un dato de la ficha (búsqueda de empresa). */
+export interface FieldSource {
+  source: string; // «GLEIF», «Wikidata», «OpenStreetMap»…
+  url?: string; // página del registro (sólo http/https)
+  at: string; // ISO
+  /** El usuario modificó el valor propuesto antes de guardarlo. */
+  edited?: boolean;
+}
 
 export interface Company {
   id: string;
@@ -30,6 +39,12 @@ export interface Company {
   notes?: string; // notas comerciales generales
   /** Logo / imagen principal: id de un archivo (kind 'photo', category 'logo') de esta empresa. Opcional: sin migración. */
   logoMediaId?: string;
+  /** Sector de actividad (texto libre; p. ej. «Industria alimentaria»). Opcional. */
+  sector?: string;
+  /** Descripción de la actividad (texto libre). Opcional. */
+  description?: string;
+  /** Procedencia de los datos obtenidos automáticamente: campo → fuente y fecha. Opcional. */
+  provenance?: Record<string, FieldSource>;
   priority: Priority;
   createdAt: string;
   updatedAt: string;

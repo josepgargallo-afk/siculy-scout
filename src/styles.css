@@ -508,3 +508,12 @@ details.card > summary { padding: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---- Búsqueda de empresa ---- */
+.cand-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); cursor: pointer; }
+.cand-row.on { border-color: var(--night); background: var(--night-soft); }
+.cand-row input { margin-top: 2px; }
+.cand-t { display: block; font-weight: 650; line-height: 1.3; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.cand-s { display: block; margin-top: 2px; overflow-wrap: anywhere; }
+.prov-list { display: flex; flex-direction: column; gap: 6px; }
+.prov-list .small { overflow-wrap: anywhere; }

@@ -154,3 +154,12 @@ Usa frases reales de tu trabajo, p. ej.: «Quiero cuarenta cajas de cannoli de d
 5. Con el teclado abierto en un formulario largo, el campo activo queda visible.
 6. Barra de estado/gestos de Android: nada queda debajo de la barra inferior ni de la muesca.
 7. Modo avión: la tipografía y los iconos se ven igual.
+
+## 13. Novedades v0.6.0 (buscar empresa) — probar en el Samsung, con datos móviles o Wi-Fi
+1. Nueva empresa → escribir «Pastificio Di Martino» → Buscar empresa: aparece GLEIF con Gragnano, Italia. Marcarla → ver datos → «Usar estos datos» → Guardar y abrir ficha: razón social y dirección rellenas; «Procedencia de los datos» las atribuye a GLEIF.
+2. «Pasticceria Cappello Palermo»: OpenStreetMap con teléfono, email y web.
+3. Ficha existente → ⋮ → Completar datos online… con «Barilla»: Wikidata con web, sector, descripción y logo. Lo que ya estaba escrito (p. ej. un teléfono) no cambia.
+4. Escribir en la ficha y, sin esperar, completar datos: lo escrito se conserva.
+5. Un nombre inventado: «No hay coincidencias fiables» y se puede crear la ficha normalmente.
+6. Modo avión: el diálogo avisa «Sin conexión» y el botón queda desactivado; la app sigue funcionando.
+7. Crear copia ZIP → restaurar: sector, descripción, logo y procedencia vuelven.

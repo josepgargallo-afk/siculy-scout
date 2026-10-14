@@ -150,7 +150,7 @@ describe('compatibilidad de copias ZIP: v1 → app v2, y v2 → v2', () => {
     expect(await fresh.notes.get(n.id)).toMatchObject({ kind: 'transcript', sourceMediaId: a.id });
     // un «processing» interrumpido vuelve a la cola, no se queda colgado
     expect((await fresh.media.get(m2.id))!.transcript!.status).toBe('pending');
-    expect(SCHEMA_VERSION).toBe(3);
+    expect(SCHEMA_VERSION).toBe(4);
   });
 
   /** Copia con el formato EXACTO de la v0.2.0 (schemaVersion 2): transcripción sin avisos y nota sin comentario. */

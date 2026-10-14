@@ -1,6 +1,6 @@
 {
   "name": "siculy-scout",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Siculy Scout - captura comercial offline para ferias",
   "scripts": {
     "predev": "node scripts/copy-ocr.mjs",
@@ -14,7 +14,8 @@
     "test:ocr": "vitest run --config vitest.ocr.config.ts",
     "ocr:photo": "node scripts/ocr-photo.mjs",
     "asr:bench": "vitest run --config vitest.asr.config.ts",
-    "asr:audio": "node bench/asr/make-audio.mts"
+    "asr:audio": "node bench/asr/make-audio.mts",
+    "enrich:live": "vitest run --config vitest.enrich.config.ts --reporter=verbose"
   },
   "keywords": [],
   "author": "",

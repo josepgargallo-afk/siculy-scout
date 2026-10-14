@@ -118,3 +118,7 @@ Modelo de datos listo para un CRM: `companies`, `contacts`, `touchpoints` (prime
 - Ficha: nombre grande con logo y clasificación (la barra superior sólo muestra el nombre al desplazarse); acciones rápidas con iconos; cinco acordeones; «Eliminar empresa» pasa al menú ⋮ con la misma confirmación.
 - Notas y audios: grabación arriba, transcripción como texto principal, comentario propio en un bloque terracota, estados (en cola, transcribiendo, transcrito, revisar, error) con etiquetas de color e icono.
 - Corrección: al pasar directamente de una empresa a otra, la ficha podía mostrar (y dejar editar) los datos de la anterior; ahora cada ficha se monta de cero.
+
+## Novedades v0.6.0 (buscar empresa)
+- **Buscar empresa** al crear una ficha y **Completar datos online…** en el menú ⋮ de una ficha: busca por nombre en fuentes públicas y gratuitas (Sirene FR, Brønnøysund NO, ARES CZ, GLEIF, Wikidata, OpenStreetMap), muestra coincidencias con país/ciudad/fuente, vista previa editable y rellena solo lo confirmado, conservando la procedencia de cada dato. Sin claves, sin proxies, sin scraping. Cobertura y límites reales (Italia/España solo vía GLEIF, Wikidata y OSM) en [docs/ENRIQUECIMIENTO.md](docs/ENRIQUECIMIENTO.md).
+- Campos nuevos en la ficha: Sector y Descripción de la actividad, y «Procedencia de los datos». Copias ZIP en esquema 4 (se siguen restaurando las v1–v3).

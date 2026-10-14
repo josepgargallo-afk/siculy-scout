@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Building2, Camera, ExternalLink, IdCard, Image as ImageIcon, MapPin, Mic, NotebookPen, QrCode, Trash2, Users } from 'lucide-react';
+import { Building2, Camera, Globe, ExternalLink, IdCard, Image as ImageIcon, MapPin, Mic, NotebookPen, QrCode, Trash2, Users } from 'lucide-react';
 import { db } from '../lib/db';
 import { deleteCompany, updateCompany } from '../lib/repo';
 import { describeSaveError } from '../lib/storage';
@@ -12,15 +12,20 @@ import { NotesAudioSection } from './NotesAudio';
 import { Acc, summaries } from './Accordion';
 import { Logo, LogoEditor, useLogoBlob } from './Logo';
 import { loadOpen, saveOpen, takeReveal, type SecKey } from './reveal';
+import { EnrichDialog, applyToCompany } from './Enrich';
+import { pruneProvenance } from '../lib/enrich/search';
+import { FIELD_LABEL, type FieldKey } from '../lib/enrich/types';
 
 interface FormState {
   name: string; legalName: string; type: CompanyType; priority: Priority; country: string; city: string;
   address: string; operationalAddress: string; email: string; phone: string; web: string; categories: string; products: string; notes: string;
+  sector: string; description: string;
 }
 
 const toForm = (c: Company): FormState => ({
   name: c.name, legalName: c.legalName ?? '', type: c.type, priority: c.priority, country: c.country ?? '', city: c.city ?? '',
   address: c.address ?? '', operationalAddress: c.operationalAddress ?? '', email: c.email ?? '', phone: c.phone ?? '', web: c.web ?? '', categories: c.categories.join(', '), products: c.productsOfInterest.join(', '), notes: c.notes ?? '',
+  sector: c.sector ?? '', description: c.description ?? '',
 });
 
 /** YYYY-MM-DD → «14 oct 2026» (sin cambiar el dato guardado). */
@@ -29,7 +34,7 @@ const fmtDay = (ymd: string) => { const d = new Date(ymd + 'T12:00:00'); return 
 type SaveState = 'saved' | 'pending' | 'error';
 
 /** Formulario con AUTOGUARDADO: cada cambio se guarda a los 600 ms y siempre al salir o ocultar la app. */
-function CompanyForm({ company, onState }: { company: Company; onState?: (s: SaveState) => void }) {
+function CompanyForm({ company, onState, flushRef }: { company: Company; onState?: (s: SaveState) => void; flushRef?: { current: (() => Promise<void>) | null } }) {
   const ui = useUi();
   const [f, setF] = useState<FormState>(() => toForm(company));
   const [state, setState] = useState<SaveState>('saved');
@@ -37,6 +42,7 @@ function CompanyForm({ company, onState }: { company: Company; onState?: (s: Sav
   const dirty = useRef(false);
   const timer = useRef<number>(undefined);
   const id = company.id;
+  const companyRef = useRef(company); companyRef.current = company;
   useEffect(() => { onState?.(state); }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const flush = async () => {
@@ -46,16 +52,22 @@ function CompanyForm({ company, onState }: { company: Company; onState?: (s: Sav
     if (!v.name.trim()) { setState('error'); return; }
     dirty.current = false;
     try {
-      await updateCompany(id, {
+      const next = {
         name: v.name, legalName: v.legalName.trim() || undefined, type: v.type, priority: v.priority,
         country: v.country.trim() || undefined, city: v.city.trim() || undefined, address: v.address.trim() || undefined, operationalAddress: v.operationalAddress.trim() || undefined,
         email: v.email.trim() || undefined, phone: v.phone.trim() || undefined,
         web: v.web.trim() || undefined, categories: splitList(v.categories), productsOfInterest: splitList(v.products),
         notes: v.notes.trim() || undefined,
-      });
+        sector: v.sector.trim() || undefined, description: v.description.trim() || undefined,
+      };
+      // Un dato editado a mano deja de atribuirse a la fuente que lo propuso.
+      const prov = pruneProvenance(companyRef.current.provenance, companyRef.current as unknown as Record<string, unknown>, next as unknown as Record<string, string | undefined>);
+      await updateCompany(id, { ...next, ...(companyRef.current.provenance ? { provenance: prov } : {}) });
       setState(dirty.current ? 'pending' : 'saved');
     } catch (e) { dirty.current = true; setState('error'); ui.toast(describeSaveError(e), 'err'); }
   };
+
+  if (flushRef) flushRef.current = flush;
 
   const set = (p: Partial<FormState>) => {
     const n = { ...latest.current, ...p };
@@ -99,7 +111,20 @@ function CompanyForm({ company, onState }: { company: Company; onState?: (s: Sav
       </Field>
       <Field label="Categorías de producto" hint="Separadas por comas"><input type="text" value={f.categories} onChange={(e) => set({ categories: e.target.value })} placeholder="Pescado, Pasta, Helados" /></Field>
       <Field label="Productos de interés" hint="Separados por comas"><input type="text" value={f.products} onChange={(e) => set({ products: e.target.value })} /></Field>
+      <Field label="Sector"><input type="text" value={f.sector} onChange={(e) => set({ sector: e.target.value })} placeholder="Ej.: Industria alimentaria" /></Field>
+      <Field label="Descripción de la actividad"><textarea value={f.description} onChange={(e) => set({ description: e.target.value })} /></Field>
       <Field label="Notas comerciales"><textarea value={f.notes} onChange={(e) => set({ notes: e.target.value })} /></Field>
+      {company.provenance && Object.keys(company.provenance).length > 0 && (
+        <details className="nmore">
+          <summary>Procedencia de los datos</summary>
+          <div className="prov-list">
+            {Object.entries(company.provenance).map(([k, p]) => (
+              <div key={k} className="small"><b>{FIELD_LABEL[k as FieldKey] ?? (k === 'logo' ? 'Logo' : k)}</b>: {p.source}{p.edited ? ' (editado)' : ''} · {new Date(p.at).toLocaleDateString('es-ES')}{' '}
+                {p.url && <a href={p.url} target="_blank" rel="noopener noreferrer">registro</a>}</div>
+            ))}
+          </div>
+        </details>
+      )}
       <div className="small">Creada {new Date(company.createdAt).toLocaleString('es-ES')} · Modificada {new Date(company.updatedAt).toLocaleString('es-ES')}</div>
     </div>
   );
@@ -116,6 +141,9 @@ export function CompanyView({ id }: { id: string }) {
   const [saveState, setSaveState] = useState<SaveState>('saved');
   const [notesSum, setNotesSum] = useState({ total: 0, busy: 0 });
   const [logoEdit, setLogoEdit] = useState(false);
+  const [enrichOpen, setEnrichOpen] = useState(false);
+  const [formKey, setFormKey] = useState(0);
+  const flushForm = useRef<(() => Promise<void>) | null>(null);
   const idRef = useRef<HTMLDivElement>(null);
   const [titleOn, setTitleOn] = useState(false);
   const [counts, countsReady] = useLive(async () => {
@@ -181,6 +209,7 @@ export function CompanyView({ id }: { id: string }) {
     <>
       <Header title={company.name} hideTitle={!titleOn} back="/" right={
         <MoreMenu label="Más opciones de la empresa" items={[
+          { label: 'Completar datos online…', icon: <Globe />, onClick: () => setEnrichOpen(true) },
           { label: 'Cambiar logo', icon: <ImageIcon />, onClick: () => setLogoEdit(true) },
           { label: 'Eliminar empresa…', icon: <Trash2 />, danger: true, onClick: () => void del() },
         ]} />
@@ -207,7 +236,7 @@ export function CompanyView({ id }: { id: string }) {
           onChange={async (e) => { const fl = e.target.files ? Array.from(e.target.files) : []; e.target.value = ''; if (fl.length) { const pid = await addPhotoFiles(id, fl, 'product', ui); if (pid) openSec('photos', pid); } }} />
 
         <Acc id="sec-data" icon={<Building2 />} title="Datos de la empresa" summary={summaries.data(company, TYPE_LABEL[company.type])} badge={badge} open={isOpen('data')} onToggle={() => toggle('data')}>
-          <CompanyForm key={id} company={company} onState={setSaveState} />
+          <CompanyForm key={id + ':' + formKey} company={company} onState={setSaveState} flushRef={flushForm} />
         </Acc>
         <Acc id="sec-contacts" icon={<Users />} title="Contactos" summary={countsReady ? summaries.contacts(counts.contacts) : '…'} open={isOpen('contacts')} onToggle={() => toggle('contacts')}>
           <ContactsSection companyId={id} reveal={rv('contacts')} />
@@ -223,6 +252,16 @@ export function CompanyView({ id }: { id: string }) {
         </Acc>
       </div>
       {logoEdit && <LogoEditor company={company} onClose={() => setLogoEdit(false)} />}
+      {enrichOpen && (
+        <EnrichDialog initialQuery={company.name} existing={company} onClose={() => setEnrichOpen(false)}
+          onApply={async (r) => {
+            await flushForm.current?.(); // lo que estuvieras escribiendo se guarda ANTES de aplicar los datos encontrados
+            await applyToCompany(id, r, ui);
+            setFormKey((k) => k + 1); // el formulario se recarga con los datos nuevos
+            openSec('data');
+            ui.toast('Ficha completada');
+          }} />
+      )}
     </>
   );
 }

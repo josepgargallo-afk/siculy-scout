@@ -40,7 +40,7 @@ interface Manifest {
   files: FileEntry[];
 }
 
-export const APP_VERSION = '0.5.0';
+export const APP_VERSION = '0.6.0';
 
 // ---------- utilidades ----------
 async function sha256(data: Uint8Array): Promise<string> {
@@ -191,6 +191,20 @@ function sanitizeTranscript(v: unknown): Transcript | undefined {
   return t;
 }
 
+/** Procedencia de datos: sólo campos y tipos conocidos, URLs http(s) y tamaños acotados. */
+function sanitizeProvenance(v: unknown): Company['provenance'] | undefined {
+  if (!isObj(v)) return undefined;
+  const out: NonNullable<Company['provenance']> = {};
+  for (const [k, e] of Object.entries(v).slice(0, 30)) {
+    if (!isObj(e) || !isStr(e.source) || !isStr(e.at)) continue;
+    const f: NonNullable<Company['provenance']>[string] = { source: e.source.slice(0, 80), at: e.at.slice(0, 40) };
+    if (isStr(e.url) && /^https?:\/\//i.test(e.url)) f.url = e.url.slice(0, 500);
+    if (e.edited === true) f.edited = true;
+    out[k.slice(0, 40)] = f;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 function validateData(raw: unknown): { data: BackupData; problems: string[] } {
   const problems: string[] = [];
   const empty: BackupData = { companies: [], contacts: [], touchpoints: [], notes: [], media: [] };
@@ -212,7 +226,9 @@ function validateData(raw: unknown): { data: BackupData; problems: string[] } {
   for (const o of arr('companies')) {
     if (!checkId('companies', o)) continue;
     if (!isStr(o.name) || !o.name.trim()) { problems.push(`Empresa ${o.id} sin nombre`); continue; }
-    const c = pick<Company>(o, ['id', 'name', 'legalName', 'type', 'country', 'city', 'address', 'operationalAddress', 'web', 'email', 'phone', 'notes', 'logoMediaId', 'priority', 'createdAt', 'updatedAt']);
+    const c = pick<Company>(o, ['id', 'name', 'legalName', 'type', 'country', 'city', 'address', 'operationalAddress', 'web', 'email', 'phone', 'notes', 'logoMediaId', 'sector', 'description', 'priority', 'createdAt', 'updatedAt']);
+    const prov = sanitizeProvenance(o.provenance);
+    if (prov) c.provenance = prov;
     c.type = ['supplier', 'prospect', 'both'].includes(String(o.type)) ? (o.type as Company['type']) : 'prospect';
     c.priority = ['high', 'medium', 'low'].includes(String(o.priority)) ? (o.priority as Company['priority']) : 'medium';
     c.categories = Array.isArray(o.categories) ? o.categories.filter(isStr) : [];
