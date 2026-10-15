@@ -51,7 +51,7 @@ describe('marca visible OCCASORIO', () => {
     expect(v).toContain("background_color: '#0e1b34'");
     const h = read('index.html');
     expect(h).toContain('<title>OCCASORIO</title>');
-    expect(h).toContain('href="favicon.svg"');
+    expect(h).toContain('href="brand/app_icon.svg"');
     expect(h).toContain('icons/apple-touch-icon.png');
   });
 
@@ -83,5 +83,34 @@ describe('marca visible OCCASORIO', () => {
       const t = read(f).replace(/antes Siculy Scout/g, '');
       expect(t, f).not.toMatch(/Siculy Scout/);
     }
+  });
+
+  it('el logotipo de la app usa los MISMOS trazados que los SVG aprobados del kit', () => {
+    const tsx = read('src/ui/Brand.tsx');
+    const pathsOf = (svg: string) => [...svg.matchAll(/<(?:path|circle)[^>]*>/g)].map((m) => m[0]);
+    const attr = (el: string, a: string) => (el.match(new RegExp(a + '="([^"]*)"')) ?? [])[1];
+    const kit = pathsOf(read('public/brand/app_icon.svg'));
+    expect(kit.length).toBe(4);
+    for (const el of kit) {
+      const d = attr(el, 'd'), r = attr(el, 'r');
+      if (d) expect(tsx, 'trazado ' + d.slice(0, 20)).toContain('d="' + d + '"');
+      else expect(tsx).toContain('cx="' + attr(el, 'cx') + '" cy="' + attr(el, 'cy') + '" r="' + r + '"');
+      const sw = attr(el, 'stroke-width');
+      if (sw) expect(tsx).toContain('strokeWidth="' + sw + '"');
+    }
+    // El icono instalable y el símbolo en línea parten de la misma geometría (símbolo suelto del kit).
+    const sym = pathsOf(read('public/brand/simbolo_color.svg')).map((e) => attr(e, 'd')).filter(Boolean);
+    for (const d of sym) expect(tsx).toContain('d="' + d + '"');
+  });
+
+  it('el icono instalable muestra el trazo blanco interior (no es solo un anillo)', async () => {
+    const { data, info } = await sharp('public/icons/icon-512.png').raw().toBuffer({ resolveWithObject: true });
+    // Punto del trazo blanco del kit: (47..82, 80..61) en el símbolo => ×3,25 + 48 en el icono de 512.
+    const px = (x: number, y: number) => { const i = (y * 512 + x) * info.channels; return [data[i], data[i + 1], data[i + 2]]; };
+    const [r, g, b] = px(Math.round(48 + 65 * 3.25), Math.round(48 + 72 * 3.25));
+    expect(Math.min(r, g, b)).toBeGreaterThan(200);
+    // y el coral del punto de oportunidad
+    const [cr, cg, cb] = px(Math.round(48 + 107 * 3.25), Math.round(48 + 83 * 3.25));
+    expect([cr > 230, cg > 100 && cg < 160, cb > 90 && cb < 130]).toEqual([true, true, true]);
   });
 });

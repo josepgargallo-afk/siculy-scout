@@ -67,3 +67,14 @@ Las copias se descargan ahora como `occasorio-AAAA-MM-DD_HHMM.zip` y los CSV com
 ## Capturas
 
 En `docs/capturas/occasorio-*.jpg`, con viewport de 412 × 915 (S25 Ultra), datos **ficticios** y la build de producción servida en local. La de escritorio (`occasorio-11-escritorio-1024.jpg`, viewport de 1024 px) tiene poca resolución por el tamaño del panel de pruebas.
+
+## Corrección posterior a la v0.7.0: logo dentro de la app
+
+**Diagnóstico.** Los iconos instalables publicados (`icon-192/512`, `maskable-512`, `apple-touch-icon`) eran **idénticos byte a byte** a los de la rama y coinciden con el `app_icon_512.png` del kit (0,23 % de píxeles distintos, sólo el suavizado de bordes). El problema visible en la app era otro: el símbolo del kit lleva un trazo blanco interior (`#F9FFFF`) pensado para fondo oscuro; sobre el marfil de la interfaz queda invisible y el símbolo parecía un anillo con un punto, distinto del icono aprobado. El kit y el diseño aprobado son el mismo símbolo (mismos trazados en SVG y PNG); lo que no estaba definido en el kit es cómo verlo sobre fondo claro.
+
+**Corrección (sin dibujar nada nuevo).** Sobre fondos claros la marca se muestra con el propio `app_icon.svg` aprobado (azul noche con el símbolo completo): cabecera, bienvenida y pie de Ajustes (`BrandAppIcon` en `src/ui/Brand.tsx`, trazados idénticos al SVG del kit). Sobre fondos oscuros se mantiene el símbolo suelto. Los favicons PNG se generan ahora desde `app_icon.svg` y la pestaña usa `brand/app_icon.svg`. Paleta, tipografía e iconos instalables no cambian. `branding.test.ts` comprueba que los trazados de la app coinciden con los SVG del kit y que el icono instalable muestra el trazo blanco y el punto coral.
+
+Comparativa: `docs/capturas/occasorio-comparativa-logo-icono.png`.
+
+## Icono de la app instalada en Android
+El icono del launcher no lo dibuja la web: Chrome empaqueta la PWA como un **WebAPK** y el lanzador de Samsung lo muestra. Chrome sólo comprueba el manifest al **abrir la app instalada** (como máximo cada 24 horas) y solicita el WebAPK nuevo cuando todas sus ventanas están cerradas y el móvil está **con Wi‑Fi y cargando**; la actualización puede tardar horas o días. Procedimiento seguro (no borra datos): ver la respuesta de la entrega y [web.dev: manifest updates](https://web.dev/articles/manifest-updates).

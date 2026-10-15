@@ -34,11 +34,36 @@ export function BrandSymbol({ size = 28, tone = 'color', title }: { size?: numbe
   );
 }
 
-/** Logotipo horizontal: símbolo + «occasorio». `dark` = sobre fondo oscuro (letras blancas). */
+/**
+ * Icono de aplicación aprobado (public/brand/app_icon.svg, trazados idénticos): símbolo completo sobre
+ * azul noche. El trazo blanco interior sólo se ve sobre fondo oscuro; sobre marfil queda invisible y el
+ * símbolo parece un simple anillo. Por eso, sobre fondos claros la marca se muestra con este icono
+ * (el mismo que el de la app instalada) y no con el símbolo suelto.
+ */
+export function BrandAppIcon({ size = 32, title }: { size?: number; title?: string }) {
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  return (
+    <svg className="brand-symbol" viewBox="0 0 512 512" width={size} height={size} role={title ? 'img' : undefined} aria-label={title} aria-hidden={title ? undefined : true} focusable="false">
+      <defs>
+        <linearGradient id={`occ-ib-${uid}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#4B67C5" /><stop offset="48%" stopColor="#2CBDB9" /><stop offset="100%" stopColor="#1C8EAD" /></linearGradient>
+        <linearGradient id={`occ-ig-${uid}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#2CBDB9" /><stop offset="100%" stopColor="#4B67C5" /></linearGradient>
+      </defs>
+      <rect x="0" y="0" width="512" height="512" rx="114" fill="#0E1B34" />
+      <g transform="translate(48 48) scale(3.25)">
+        <path d="M 42 31 C 59 18 82 20 96 35 C 104 44 107 55 106 65" stroke={`url(#occ-ib-${uid})`} strokeWidth="19" fill="none" strokeLinecap="round" />
+        <path d="M 100 88 C 88 105 63 111 43 100 C 24 90 17 70 24 51 C 27 44 32 38 36 35" stroke={`url(#occ-ig-${uid})`} strokeWidth="19" fill="none" strokeLinecap="round" />
+        <path d="M 47 80 Q 65 79 82 61" stroke="#F9FFFF" strokeWidth="9" fill="none" strokeLinecap="round" opacity="0.96" />
+        <circle cx="107" cy="83" r="8.5" fill="#FF816C" />
+      </g>
+    </svg>
+  );
+}
+
+/** Logotipo horizontal: marca + «occasorio». `dark` = sobre fondo oscuro (símbolo del kit y letras blancas). */
 export function BrandLogo({ size = 28, dark = false, claim = false }: { size?: number; dark?: boolean; claim?: boolean }) {
   return (
     <span className={'brand-logo' + (dark ? ' dark' : '')} role="img" aria-label={BRAND_NAME} style={{ ['--bl' as string]: size + 'px' }}>
-      <BrandSymbol size={size} />
+      {dark ? <BrandSymbol size={size} /> : <BrandAppIcon size={size} />}
       <span className="brand-text" aria-hidden="true">
         <span className="brand-word">occasorio</span>
         {claim && <span className="brand-claim">{BRAND_TAGLINE}</span>}

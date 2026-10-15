@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BrandLogo, BrandSymbol, BRAND_DESCRIPTION, BRAND_MESSAGE, BRAND_TAGLINE } from './Brand';
+import { BrandLogo, BrandAppIcon, BRAND_DESCRIPTION, BRAND_MESSAGE, BRAND_TAGLINE } from './Brand';
 import { ChevronRight, Image as ImageIcon, MapPin, Plus, Search, ShieldAlert, User } from 'lucide-react';
 import { clearAllOpen } from './reveal';
 import { Logo } from './Logo';
@@ -95,7 +95,7 @@ export function Directory() {
 
         {!ready ? null : rows.length === 0 ? (
           <div className="empty welcome">
-            <BrandSymbol size={64} />
+            <BrandAppIcon size={72} />
             <span className="claim">{BRAND_TAGLINE}</span>
             <p className="msg">{BRAND_MESSAGE}</p>
             <p className="desc">{BRAND_DESCRIPTION}</p>
