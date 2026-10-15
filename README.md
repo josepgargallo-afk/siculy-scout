@@ -1,4 +1,6 @@
-# Siculy Scout
+# OCCASORIO (antes Siculy Scout)
+
+> **Discover. Capture. Grow.** Las oportunidades están en todas partes. Desde la v0.7.0 la app se muestra como **OCCASORIO**; los identificadores técnicos (base de datos, formato de copia, cachés, URL de la PWA) siguen siendo los de Siculy Scout para no perder datos ni la instalación. Ver [docs/MARCA.md](docs/MARCA.md).
 
 PWA instalable en Android para registrar proveedores y potenciales clientes en ferias (primer uso: **SIAL París 2026**).
 Todo funciona **en el propio móvil**: sin servidores, sin cuentas, sin APIs de pago. Los datos quedan en tu control.
@@ -48,7 +50,7 @@ Requiere Node 20+. `npm run dev`/`build` copian automáticamente los recursos OC
 ## Instalar en el Samsung (Android)
 
 1. Con **Wi‑Fi**, abre la URL de la app en **Chrome**.
-2. Menú ⋮ → **Instalar aplicación** (o «Añadir a pantalla de inicio»). Aparece el icono «Scout».
+2. Menú ⋮ → **Instalar aplicación** (o «Añadir a pantalla de inicio»). Aparece el icono «OCCASORIO».
 3. Ábrela **una vez con conexión** y espera el aviso «Lista para funcionar sin conexión».
 4. En **Ajustes → OCR sin conexión → Descargar ahora** (≈ 25 MB, una sola vez) para poder escanear tarjetas sin red.
 5. Haz una copia de prueba y comprueba que el ZIP llega a tu ordenador/Drive **antes** de la feria.
@@ -122,3 +124,8 @@ Modelo de datos listo para un CRM: `companies`, `contacts`, `touchpoints` (prime
 ## Novedades v0.6.0 (buscar empresa)
 - **Buscar empresa** al crear una ficha y **Completar datos online…** en el menú ⋮ de una ficha: busca por nombre en fuentes públicas y gratuitas (Sirene FR, Brønnøysund NO, ARES CZ, GLEIF, Wikidata, OpenStreetMap), muestra coincidencias con país/ciudad/fuente, vista previa editable y rellena solo lo confirmado, conservando la procedencia de cada dato. Sin claves, sin proxies, sin scraping. Cobertura y límites reales (Italia/España solo vía GLEIF, Wikidata y OSM) en [docs/ENRIQUECIMIENTO.md](docs/ENRIQUECIMIENTO.md).
 - Campos nuevos en la ficha: Sector y Descripción de la actividad, y «Procedencia de los datos». Copias ZIP en esquema 4 (se siguen restaurando las v1–v3).
+
+## Novedades v0.7.0 (marca OCCASORIO)
+- Identidad del **Brand Kit v1**: símbolo, logotipo, iconos instalables (normal y maskable), favicon y paleta (noche, índigo, turquesa, salvia, coral, marfil), con contraste AA en los textos. Detalles y diferencias con el kit en [docs/MARCA.md](docs/MARCA.md); capturas en `docs/capturas/occasorio-*`.
+- Bienvenida del directorio vacío con el mensaje de marca; pie de Ajustes con logotipo y versión.
+- Las copias se descargan como `occasorio-….zip`; las `siculy-scout-….zip` se restauran igual. Sin cambios en datos, esquema, OCR, QR, audio, transcripción ni enriquecimiento.

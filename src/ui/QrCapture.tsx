@@ -133,7 +133,7 @@ export function QrCapture({ companyId }: { companyId?: string }) {
                   <div className="small">
                     La app <b>no puede leer</b> el contenido de páginas ajenas (el navegador lo bloquea por seguridad y privacidad) ni hace scraping.
                     Lo habitual es que la página tenga un botón <i>«Guardar contacto»</i>, <i>«Añadir a contactos»</i> o <i>«Descargar vCard»</i>:
-                    púlsalo para bajar el archivo <b>.vcf</b> y luego impórtalo aquí. Desde Android también puedes <i>Compartir → Siculy Scout</i>.
+                    púlsalo para bajar el archivo <b>.vcf</b> y luego impórtalo aquí. Desde Android también puedes <i>Compartir → OCCASORIO</i>.
                   </div>
                   <button className="btn primary" onClick={() => navigate('/import' + (companyId ? '?c=' + companyId : ''))}><FileUp />Importar archivo .vcf</button>
                   <button className="btn" onClick={() => setAsContact(true)}>Crear contacto sólo con este enlace</button>

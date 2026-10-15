@@ -6,6 +6,7 @@ import { installWhisper, kickTranscription, removeWhisperModel } from '../lib/wh
 import { pendingCount } from '../lib/transcribe';
 import { formatBytes as fmtB } from '../lib/storage';
 import { APP_VERSION } from '../lib/backup';
+import { BrandLogo, BRAND_TAGLINE } from './Brand';
 import { isOcrCached, prepareOcrOffline } from '../lib/ocr';
 import { saveSettings } from '../lib/settings';
 import { speechSupported } from '../lib/speech';
@@ -118,7 +119,9 @@ export function SettingsScreen() {
         </div>
 
         <div className="app-foot">
-          <b>Siculy Scout</b> v{APP_VERSION} · Datos 100 % locales en este dispositivo; no se envía nada a servidores · {online ? 'Conectado' : 'Sin conexión'}
+          <BrandLogo size={30} />
+          <span className="claim">{BRAND_TAGLINE}</span>
+          v{APP_VERSION} (antes Siculy Scout) · Datos 100 % locales en este dispositivo; no se envía nada a servidores · {online ? 'Conectado' : 'Sin conexión'}
         </div>
       </div>
     </>

@@ -40,7 +40,7 @@ interface Manifest {
   files: FileEntry[];
 }
 
-export const APP_VERSION = '0.6.0';
+export const APP_VERSION = '0.7.0';
 
 // ---------- utilidades ----------
 async function sha256(data: Uint8Array): Promise<string> {
@@ -58,7 +58,7 @@ async function blobBytes(b: Blob): Promise<Uint8Array> {
   return new Uint8Array(await b.arrayBuffer());
 }
 
-const README = `SICULY SCOUT - COPIA DE SEGURIDAD
+const README = `OCCASORIO (antes Siculy Scout) - COPIA DE SEGURIDAD
 ==================================
 manifest.json   : versión, recuentos y huellas SHA-256 de todos los archivos.
 data.json       : empresas, contactos, visitas, notas y metadatos de fotos/audios.
@@ -66,7 +66,7 @@ files/media/    : fotografías y audios originales (nombre = id).
 files/thumbs/   : miniaturas.
 csv/            : empresas.csv y contactos.csv (Excel, separador ";").
 
-Para restaurar: Siculy Scout > Copias > Restaurar. No modifique el contenido del ZIP.
+Para restaurar: OCCASORIO > Copias > Restaurar. No modifique el contenido del ZIP.
 Contiene datos personales: no lo suba a repositorios públicos.
 `;
 
@@ -145,7 +145,7 @@ export async function exportBackup(onProgress?: (msg: string) => void): Promise<
   const d = new Date(manifest.exportedAt);
   const p2 = (n: number) => String(n).padStart(2, '0');
   const stamp = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}`;
-  return { blob, filename: `siculy-scout-${stamp}.zip`, counts, fileCount: files.length, bytes: blob.size };
+  return { blob, filename: `occasorio-${stamp}.zip`, counts, fileCount: files.length, bytes: blob.size };
 }
 
 /** Exporta, VERIFICA el ZIP resultante y sólo entonces registra la fecha de copia. */
@@ -304,10 +304,10 @@ export async function parseBackup(file: Blob): Promise<ParsedBackup> {
   }
   const mf = entries['manifest.json'];
   const df = entries['data.json'];
-  if (!mf || !df) throw new BackupError('No es una copia de Siculy Scout (faltan manifest.json o data.json)');
+  if (!mf || !df) throw new BackupError('No es una copia de OCCASORIO / Siculy Scout (faltan manifest.json o data.json)');
   let manifest: Manifest;
   try { manifest = JSON.parse(strFromU8(mf)) as Manifest; } catch { throw new BackupError('manifest.json ilegible'); }
-  if (!isObj(manifest) || manifest.format !== FORMAT) throw new BackupError('El ZIP no es una copia de Siculy Scout');
+  if (!isObj(manifest) || manifest.format !== FORMAT) throw new BackupError('El ZIP no es una copia de OCCASORIO / Siculy Scout');
   if (typeof manifest.schemaVersion !== 'number' || manifest.schemaVersion > SCHEMA_VERSION) {
     throw new BackupError(`Copia de una versión más nueva (${String(manifest.schemaVersion)}). Actualiza la app antes de restaurar.`);
   }

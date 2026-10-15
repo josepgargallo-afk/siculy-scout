@@ -1,12 +1,24 @@
+// Genera los iconos instalables a partir de los SVG originales del kit OCCASORIO (public/brand/).
+// - icon-192/512: app_icon.svg tal cual (cuadrado redondeado sobre azul noche).
+// - maskable-512 y apple-touch-icon: el mismo dibujo a sangre (sin esquinas redondeadas), porque
+//   Android e iOS aplican su propia máscara; el símbolo ya cae dentro de la zona segura (círculo del 80 %).
+// - favicon-32/64: favicon.svg (símbolo sin fondo).
+import { readFileSync } from 'node:fs';
 import sharp from 'sharp';
-const svg = (pad) => `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-<rect width="512" height="512" fill="#0f2a3d"/>
-<g transform="translate(${pad} ${pad}) scale(${(512 - 2 * pad) / 512})">
-<circle cx="256" cy="236" r="130" fill="none" stroke="#f4b942" stroke-width="30"/>
-<path d="M256 366 L256 440" stroke="#f4b942" stroke-width="30" stroke-linecap="round"/>
-<text x="256" y="282" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="150" text-anchor="middle" fill="#ffffff">S</text>
-</g></svg>`;
-await sharp(Buffer.from(svg(0))).resize(512).png().toFile('public/icons/icon-512.png');
-await sharp(Buffer.from(svg(0))).resize(192).png().toFile('public/icons/icon-192.png');
-await sharp(Buffer.from(svg(70))).resize(512).png().toFile('public/icons/maskable-512.png');
-console.log('icons ok');
+
+const appIcon = readFileSync('public/brand/app_icon.svg', 'utf8');
+const fullBleed = appIcon.replace(/rx="114"/, 'rx="0"');
+if (fullBleed === appIcon) throw new Error('app_icon.svg ha cambiado: no se encontró rx="114"');
+const favicon = readFileSync('public/brand/favicon.svg', 'utf8');
+
+const out = async (svg, size, file) => {
+  await sharp(Buffer.from(svg), { density: 384 }).resize(size, size).png({ compressionLevel: 9 }).toFile(file);
+  console.log('✓', file, `${size}×${size}`);
+};
+
+await out(appIcon, 512, 'public/icons/icon-512.png');
+await out(appIcon, 192, 'public/icons/icon-192.png');
+await out(fullBleed, 512, 'public/icons/maskable-512.png');
+await out(fullBleed, 180, 'public/icons/apple-touch-icon.png');
+await out(favicon, 64, 'public/icons/favicon-64.png');
+await out(favicon, 32, 'public/icons/favicon-32.png');

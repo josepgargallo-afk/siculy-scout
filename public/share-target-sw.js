@@ -1,4 +1,4 @@
-/* Web Share Target: recibe en Android «Compartir → Siculy Scout» (un .vcf o un enlace/texto).
+/* Web Share Target: recibe en Android «Compartir → OCCASORIO» (un .vcf o un enlace/texto).
  * Se importa desde el service worker generado (workbox.importScripts). Guarda lo recibido en una caché local
  * temporal y redirige a la pantalla de importación. No hace ninguna petición de red ni envía datos a ningún sitio. */
 self.addEventListener('fetch', (event) => {

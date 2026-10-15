@@ -1,4 +1,4 @@
-// Modelo de datos de Siculy Scout. Los ids son UUID permanentes (no se reutilizan ni cambian)
+// Modelo de datos de OCCASORIO (antes Siculy Scout). Los ids son UUID permanentes (no se reutilizan ni cambian)
 // para poder migrar a un CRM futuro sin ambigüedad. Las fechas son ISO-8601 UTC.
 
 // v2: datos corporativos de empresa (email, teléfono, dirección operativa), transcripciones de audio y notas vinculadas.

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Building2, ChevronRight, Image as ImageIcon, MapPin, Plus, Search, ShieldAlert, User } from 'lucide-react';
+import { BrandLogo, BrandSymbol, BRAND_DESCRIPTION, BRAND_MESSAGE, BRAND_TAGLINE } from './Brand';
+import { ChevronRight, Image as ImageIcon, MapPin, Plus, Search, ShieldAlert, User } from 'lucide-react';
 import { clearAllOpen } from './reveal';
 import { Logo } from './Logo';
 import { db } from '../lib/db';
@@ -51,7 +52,7 @@ export function Directory() {
   return (
     <>
       <Header
-        title={<span className="brand"><span className="brand-mark" aria-hidden="true">S<i>s</i></span>Siculy Scout</span>}
+        title={<span className="brand"><BrandLogo size={32} /></span>}
         right={ready && rows.length > 0 ? <span className="topbar-count">{rows.length} {rows.length === 1 ? 'empresa' : 'empresas'}</span> : null}
       />
       <div className="page">
@@ -93,10 +94,12 @@ export function Directory() {
         )}
 
         {!ready ? null : rows.length === 0 ? (
-          <div className="empty">
-            <span className="empty-ic"><Building2 /></span>
-            <b>Aún no hay empresas</b>
-            <p>Crea la primera con «Nueva empresa» o escaneando una tarjeta. Basta con el nombre.</p>
+          <div className="empty welcome">
+            <BrandSymbol size={64} />
+            <span className="claim">{BRAND_TAGLINE}</span>
+            <p className="msg">{BRAND_MESSAGE}</p>
+            <p className="desc">{BRAND_DESCRIPTION}</p>
+            <p className="hint">Aún no hay empresas. Crea la primera con «Nueva empresa» o escaneando una tarjeta: basta con el nombre.</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="empty">

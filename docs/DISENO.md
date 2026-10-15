@@ -1,5 +1,7 @@
 # Sistema de diseño — Siculy Scout v0.5.0
 
+> **v0.7.0:** la paleta y el logotipo pasan a ser los de **OCCASORIO** (ver [MARCA.md](MARCA.md)). Los tokens `--cream`, `--pistachio` y `--terracotta` se sustituyen por `--ivory`, `--teal` y `--coral` (con sus variantes `-ink` y `-soft`); la estructura y los componentes descritos aquí siguen igual.
+
 Objetivo: una app de feria rápida de leer y de pulsar con una mano, con identidad mediterránea sobria. Todo vive en `src/styles.css` como tokens CSS; los componentes no usan colores sueltos.
 
 ## Decisiones

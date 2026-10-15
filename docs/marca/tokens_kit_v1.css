@@ -1,0 +1,11 @@
+/* OCCASORIO -- Propuesta de diseño; no cambia la PWA actual */
+:root {
+ --occ-night: #0E1B34;
+ --occ-indigo: #4B67C5;
+ --occ-teal: #2CBDB9;
+ --occ-sage: #728A84;
+ --occ-coral: #FF816C;
+ --occ-ivory: #F8FAF9;
+ --occ-ink-secondary: #566577;
+ --occ-font: 'Inter', system-ui, sans-serif;
+}

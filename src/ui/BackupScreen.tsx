@@ -41,8 +41,8 @@ export function BackupScreen() {
 
   const doCsv = async () => {
     const [c, k, t] = await Promise.all([db.companies.toArray(), db.contacts.toArray(), db.touchpoints.toArray()]);
-    saveBlobAs(new Blob([companiesCsv(c, t)], { type: 'text/csv;charset=utf-8' }), 'siculy-scout-empresas.csv');
-    setTimeout(() => saveBlobAs(new Blob([contactsCsv(k, c)], { type: 'text/csv;charset=utf-8' }), 'siculy-scout-contactos.csv'), 400);
+    saveBlobAs(new Blob([companiesCsv(c, t)], { type: 'text/csv;charset=utf-8' }), 'occasorio-empresas.csv');
+    setTimeout(() => saveBlobAs(new Blob([contactsCsv(k, c)], { type: 'text/csv;charset=utf-8' }), 'occasorio-contactos.csv'), 400);
   };
 
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {

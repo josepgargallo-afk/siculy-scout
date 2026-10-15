@@ -8,6 +8,8 @@ public/ocr
 backups/
 siculy-scout-*.json
 siculy-scout-*.csv
+occasorio-*.json
+occasorio-*.csv
 .claude/
 
 # Fotos reales de tarjetas para pruebas locales (datos personales)

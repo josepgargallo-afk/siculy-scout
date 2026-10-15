@@ -1,7 +1,7 @@
 {
   "name": "siculy-scout",
-  "version": "0.6.0",
-  "description": "Siculy Scout - captura comercial offline para ferias",
+  "version": "0.7.0",
+  "description": "OCCASORIO (antes Siculy Scout) - captura de oportunidades comerciales offline",
   "scripts": {
     "predev": "node scripts/copy-ocr.mjs",
     "dev": "vite --host",

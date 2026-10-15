@@ -17,7 +17,7 @@ async function readText(f: Blob): Promise<string> {
 
 interface Shared { text: string; files: string[] }
 
-/** Recupera lo que el service worker guardó al recibir un «Compartir → Siculy Scout» de Android. */
+/** Recupera lo que el service worker guardó al recibir un «Compartir → OCCASORIO» de Android. */
 async function takeShared(id: string): Promise<Shared | null> {
   try {
     const cache = await caches.open('scout-share');
@@ -107,7 +107,7 @@ export function ImportVcf() {
             <div className="card small">
               <b>Tarjetas digitales (Avacard, HiHello, Blinq…)</b>: abre su enlace, pulsa «Guardar contacto / Añadir a contactos / Descargar vCard» y vuelve aquí.
               Si la plataforma no ofrece descarga, no hay forma fiable ni permitida de leerla automáticamente: usa el escáner de tarjeta (foto) o crea el contacto a mano.
-              Con la app instalada, también puedes usar <i>Compartir → Siculy Scout</i> desde el visor de archivos o la página.
+              Con la app instalada, también puedes usar <i>Compartir → OCCASORIO</i> desde el visor de archivos o la página.
             </div>
           </>
         )}
