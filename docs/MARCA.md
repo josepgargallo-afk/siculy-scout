@@ -1,4 +1,7 @@
-# Identidad OCCASORIO (v0.7.0)
+# Identidad OCCASORIO (v0.7.x) — Brand Kit v2
+
+> **Vigente: Brand Kit v2** (`docs/marca/v2/`, guía en `GUIA_DE_MARCA.md`), reconstruido del tablero `docs/marca/tablero-original.webp`. El kit v1 (símbolo turquesa con trazo blanco y punto coral) se descartó y se eliminó de la app. Lo que sigue describe el historial y las restricciones técnicas, que no cambian: **IndexedDB, formato de copia, start_url/scope, sin `id`, cachés y claves locales intactos**. Paleta de la interfaz = paleta del tablero (índigo, violeta, turquesa, azul oscuro, grises). Comparativa: `docs/capturas/occasorio-v2-comparativa.png`.
+
 
 Siculy Scout pasa a mostrarse como **OCCASORIO** («Discover. Capture. Grow.»). Es un cambio **sólo visual y de textos**: datos, esquema, copias y comportamiento no cambian.
 

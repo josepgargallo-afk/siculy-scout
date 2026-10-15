@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BrandLogo, BrandAppIcon, BRAND_DESCRIPTION, BRAND_MESSAGE, BRAND_TAGLINE } from './Brand';
+import { BrandLogo, BRAND_DESCRIPTION, BRAND_MESSAGE } from './Brand';
 import { ChevronRight, Image as ImageIcon, MapPin, Plus, Search, ShieldAlert, User } from 'lucide-react';
 import { clearAllOpen } from './reveal';
 import { Logo } from './Logo';
@@ -52,7 +52,7 @@ export function Directory() {
   return (
     <>
       <Header
-        title={<span className="brand"><BrandLogo size={32} /></span>}
+        title={<span className="brand"><BrandLogo height={30} /></span>}
         right={ready && rows.length > 0 ? <span className="topbar-count">{rows.length} {rows.length === 1 ? 'empresa' : 'empresas'}</span> : null}
       />
       <div className="page">
@@ -68,7 +68,7 @@ export function Directory() {
           <>
             <div className="search">
               <div className="search-box"><Search />
-                <input type="search" placeholder="Buscar empresa, contacto, producto…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
+                <input type="search" placeholder="Empresa, contacto o producto…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
               </div>
             </div>
             <div className="filters">
@@ -95,8 +95,7 @@ export function Directory() {
 
         {!ready ? null : rows.length === 0 ? (
           <div className="empty welcome">
-            <BrandAppIcon size={72} />
-            <span className="claim">{BRAND_TAGLINE}</span>
+            <BrandLogo height={72} claim />
             <p className="msg">{BRAND_MESSAGE}</p>
             <p className="desc">{BRAND_DESCRIPTION}</p>
             <p className="hint">Aún no hay empresas. Crea la primera con «Nueva empresa» o escaneando una tarjeta: basta con el nombre.</p>

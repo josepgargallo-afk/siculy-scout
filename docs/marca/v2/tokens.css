@@ -1,0 +1,12 @@
+/* OCCASORIO — Brand Kit v2. Valores medidos en el tablero original (paleta del propio tablero). */
+:root {
+  --occ-indigo: #6366F1;
+  --occ-violeta: #8B5CF6;
+  --occ-turquesa: #06B6D4;
+  --occ-azul-oscuro: #0F172A;
+  --occ-gris-neutro: #64748B;
+  --occ-gris-claro: #E2E8F0;
+  --occ-fondo: #FAF8F4; /* blanco cálido del tablero */
+  --occ-font-marca: 'Outfit', system-ui, sans-serif; /* logotipo y lema (ya convertidos a contornos en los SVG) */
+  --occ-font-interfaz: 'Inter', system-ui, sans-serif; /* texto de la aplicación (indicado en el tablero) */
+}

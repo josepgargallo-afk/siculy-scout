@@ -30,8 +30,8 @@ export default defineConfig({
             files: [{ name: 'file', accept: ['text/vcard', 'text/x-vcard', 'text/directory', '.vcf', 'text/plain'] }],
           },
         },
-        background_color: '#0e1b34',
-        theme_color: '#f8faf9',
+        background_color: '#faf8f4',
+        theme_color: '#faf8f4',
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },

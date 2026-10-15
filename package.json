@@ -10,7 +10,7 @@
     "preview": "vite preview --host",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "icons": "node scripts/make-icons.mjs",
+    "brand": "node scripts/make-brand-v2.mjs",
     "test:ocr": "vitest run --config vitest.ocr.config.ts",
     "ocr:photo": "node scripts/ocr-photo.mjs",
     "asr:bench": "vitest run --config vitest.asr.config.ts",
